@@ -1,0 +1,377 @@
+//@version=6
+// =============================================================================
+//  LIQUIDITY HUNTER PRO — Stop-Hunt Reversal Strategy [Indian Markets]
+//  Pine Script v6 | Educational only | Not financial advice
+//
+//  CONCEPT:
+//   Trade WITH smart money instead of being their liquidity.
+//   1. Identify obvious liquidity pools (where retail stops cluster):
+//      - Swing highs (buy stops above)
+//      - Swing lows (sell stops below)
+//      - Previous Day High / Low (PDH/PDL)
+//      - Today's session high / low
+//   2. Wait for price to SWEEP the level (high penetrates above /
+//      low penetrates below) AND close back inside (rejection).
+//   3. Enter in the OPPOSITE direction of the sweep.
+//   4. SL: just beyond the sweep wick + small ATR buffer (tight)
+//   5. TP: 2R (default), or set higher for trending days.
+//
+//  Why it has edge:
+//   When obvious levels get swept and immediately rejected, that move was
+//   smart money harvesting retail stops, not a real breakout. They reverse.
+// =============================================================================
+
+strategy("Liquidity Hunter Pro [Indian]", "Liq Hunter",
+     overlay = true,
+     initial_capital = 200000,
+     default_qty_type = strategy.fixed,
+     default_qty_value = 75,
+     pyramiding = 0,
+     commission_type = strategy.commission.cash_per_order,
+     commission_value = 20,
+     max_labels_count = 500, max_lines_count = 500, max_boxes_count = 100,
+     process_orders_on_close = true)
+
+// ===================== INPUTS =====================
+g1 = "Liquidity Detection"
+pivLen      = input.int(5,  "Swing length for pools",   minval = 2, maxval = 20, group = g1,
+     tooltip = "Bars left/right defining a swing. Bigger = stronger pools, fewer pools.")
+maxPools    = input.int(8,  "Max active pools tracked",  minval = 4, maxval = 16, group = g1)
+trackPDHL   = input.bool(true, "Track PDH / PDL",         group = g1)
+trackSessHL = input.bool(true, "Track session High / Low", group = g1)
+
+g2 = "Sweep + Rejection"
+minWickPct = input.float(40.0, "Min rejection wick % of candle",
+     minval = 0, maxval = 100, step = 5, group = g2,
+     tooltip = "The sweep candle's wick must be at least this % of total range. Filters weak rejections. 40%+ is a clear reversal candle.")
+slBufATR   = input.float(0.2, "SL buffer beyond wick (x ATR-14)",
+     minval = 0, step = 0.05, group = g2,
+     tooltip = "Extra cushion beyond the sweep wick. 0.2 = 20% of ATR. Bigger = wider stop, less likely to be re-hunted.")
+
+g3 = "Targets"
+tpRR  = input.float(2.0,  "Take-profit R:R", minval = 1.0, step = 0.1, group = g3,
+     tooltip = "Fixed R:R target. 2 is conservative. 3 = aggressive but lower win rate. 1.5 if you want fastest exits.")
+useBE = input.bool(true,  "Move SL to break-even at 1R", group = g3)
+
+g4 = "Risk Controls"
+maxTrades     = input.int(3,    "Max trades per day", minval = 1, maxval = 10, group = g4)
+maxLosses     = input.int(2,    "Stop after N losses", minval = 1, maxval = 5,  group = g4)
+useTimeWindow = input.bool(true, "Restrict entries to 9:30 - 14:30 IST", group = g4)
+
+g5 = "Display"
+showPools   = input.bool(true, "Show liquidity pools",   group = g5)
+showSwept   = input.bool(true, "Mark swept levels",      group = g5)
+showPDHL    = input.bool(true, "Show PDH / PDL",         group = g5)
+showSessHL  = input.bool(true, "Show session H/L",        group = g5)
+showSignals = input.bool(true, "Show entry arrows",      group = g5)
+showLevels  = input.bool(true, "Show SL / TP for active trade", group = g5)
+showPanel   = input.bool(true, "Show stats panel",       group = g5)
+
+g6 = "Alerts"
+alertEntry = input.bool(true,  "Alert on entry",                    group = g6)
+alertSweep = input.bool(false, "Alert on liquidity sweep (info only)", group = g6)
+
+g7 = "Colors"
+colHigh  = input.color(color.new(#ff5b6b, 30), "High pool",    group = g7)
+colLow   = input.color(color.new(#22c98a, 30), "Low pool",     group = g7)
+colSwept = input.color(color.new(#888888, 30), "Swept",        group = g7)
+colBull  = input.color(color.new(#22c98a, 0),  "Long entry",   group = g7)
+colBear  = input.color(color.new(#ff5b6b, 0),  "Short entry",  group = g7)
+colKey   = input.color(color.new(#ffb454, 0),  "PDH / PDL",     group = g7)
+colSess  = input.color(color.new(#5cf2c5, 0),  "Session H/L",   group = g7)
+colSL    = input.color(color.new(#ff5b6b, 30), "SL line",       group = g7)
+colTP    = input.color(color.new(#22c98a, 30), "TP line",       group = g7)
+
+// ===================== TIME LOGIC (IST) =====================
+istHour    = hour(time, "Asia/Kolkata")
+istMin     = minute(time, "Asia/Kolkata")
+mins       = istHour * 60 + istMin
+inWindow   = not useTimeWindow or (mins >= 570 and mins < 870)  // 9:30 to 14:30
+inExitTime = mins >= 915                                        // 15:15
+isNewDay   = ta.change(time("1D")) != 0
+
+// ===================== LIQUIDITY POOL TYPE =====================
+type Pool
+    float price
+    int   bar
+    bool  isHigh
+    bool  swept = false
+    line  ln    = na
+    label lbl   = na
+
+// ===================== STATE =====================
+var array<Pool> pools = array.new<Pool>()
+var int   tradesToday = 0
+var int   lossesToday = 0
+
+var float curSL = na
+var float curTP = na
+var bool  beHit = false
+
+// PDH/PDL/session sweep tracking
+var bool pdhSwept = false
+var bool pdlSwept = false
+
+if isNewDay
+    tradesToday := 0
+    lossesToday := 0
+    pdhSwept    := false
+    pdlSwept    := false
+
+// ===================== INDICATORS =====================
+atrVal = ta.atr(14)
+phiv   = ta.pivothigh(high, pivLen, pivLen)
+pliv   = ta.pivotlow (low,  pivLen, pivLen)
+
+pdh = trackPDHL ? request.security(syminfo.tickerid, "1D", high[1], lookahead = barmerge.lookahead_on) : na
+pdl = trackPDHL ? request.security(syminfo.tickerid, "1D", low[1],  lookahead = barmerge.lookahead_on) : na
+
+// Session high / low
+var float sessHigh = na
+var float sessLow  = na
+if isNewDay
+    sessHigh := high
+    sessLow  := low
+else
+    sessHigh := math.max(nz(sessHigh, high), high)
+    sessLow  := math.min(nz(sessLow,  low),  low)
+
+// ===================== ADD NEW POOLS FROM PIVOTS =====================
+addPool(price, isHigh) =>
+    pivBar = bar_index - pivLen
+    newP = Pool.new(price = price, bar = pivBar, isHigh = isHigh)
+    if showPools
+        ln = line.new(pivBar, price, bar_index, price,
+             color = isHigh ? colHigh : colLow,
+             style = line.style_dashed, width = 1, extend = extend.right)
+        newP.ln := ln
+    array.push(pools, newP)
+    while array.size(pools) > maxPools * 2
+        oldP = array.shift(pools)
+        if not na(oldP.ln)
+            line.delete(oldP.ln)
+        if not na(oldP.lbl)
+            label.delete(oldP.lbl)
+
+if not na(phiv)
+    addPool(phiv, true)
+if not na(pliv)
+    addPool(pliv, false)
+
+// ===================== SWEEP DETECTION =====================
+candleRange  = high - low
+upperWick    = high - math.max(open, close)
+lowerWick    = math.min(open, close) - low
+upperWickPct = candleRange > 0 ? (upperWick / candleRange) * 100 : 0
+lowerWickPct = candleRange > 0 ? (lowerWick / candleRange) * 100 : 0
+
+sweptHighLevel = float(na)
+sweptHighWick  = float(na)
+sweptLowLevel  = float(na)
+sweptLowWick   = float(na)
+
+// Scan pivot pools for sweeps (same-bar sweep + close back inside + wick check)
+if array.size(pools) > 0
+    for i = 0 to array.size(pools) - 1
+        p = array.get(pools, i)
+        if not p.swept
+            // Bearish sweep: high pool taken out, close back below, strong upper wick
+            if p.isHigh and high > p.price and close < p.price and upperWickPct >= minWickPct
+                p.swept := true
+                if not na(p.ln)
+                    line.set_color(p.ln, colSwept)
+                if showSwept
+                    p.lbl := label.new(bar_index, p.price, "SWEPT",
+                         style = label.style_label_down,
+                         color = colSwept, textcolor = color.white, size = size.tiny)
+                array.set(pools, i, p)
+                if na(sweptHighLevel) or p.price > sweptHighLevel
+                    sweptHighLevel := p.price
+                    sweptHighWick  := high
+            // Bullish sweep: low pool taken out, close back above, strong lower wick
+            else if not p.isHigh and low < p.price and close > p.price and lowerWickPct >= minWickPct
+                p.swept := true
+                if not na(p.ln)
+                    line.set_color(p.ln, colSwept)
+                if showSwept
+                    p.lbl := label.new(bar_index, p.price, "SWEPT",
+                         style = label.style_label_up,
+                         color = colSwept, textcolor = color.white, size = size.tiny)
+                array.set(pools, i, p)
+                if na(sweptLowLevel) or p.price < sweptLowLevel
+                    sweptLowLevel := p.price
+                    sweptLowWick  := low
+
+// PDH / PDL sweeps
+if trackPDHL and not na(pdh) and not pdhSwept
+    if high > pdh and close < pdh and upperWickPct >= minWickPct
+        pdhSwept := true
+        if na(sweptHighLevel) or pdh > sweptHighLevel
+            sweptHighLevel := pdh
+            sweptHighWick  := high
+
+if trackPDHL and not na(pdl) and not pdlSwept
+    if low < pdl and close > pdl and lowerWickPct >= minWickPct
+        pdlSwept := true
+        if na(sweptLowLevel) or pdl < sweptLowLevel
+            sweptLowLevel := pdl
+            sweptLowWick  := low
+
+anySweepHigh = not na(sweptHighLevel)
+anySweepLow  = not na(sweptLowLevel)
+
+// ===================== ENTRY LOGIC =====================
+canTrade = inWindow and not inExitTime and tradesToday < maxTrades and lossesToday < maxLosses and strategy.position_size == 0
+
+// Whipsaw protection: don't trade if both directions swept same bar
+shortSig = canTrade and anySweepHigh and not anySweepLow
+longSig  = canTrade and anySweepLow  and not anySweepHigh
+
+if shortSig
+    curSL := sweptHighWick + atrVal * slBufATR
+    risk = curSL - close
+    curTP := close - risk * tpRR
+    beHit := false
+    strategy.entry("Short", strategy.short)
+    tradesToday += 1
+
+if longSig
+    curSL := sweptLowWick - atrVal * slBufATR
+    risk = close - curSL
+    curTP := close + risk * tpRR
+    beHit := false
+    strategy.entry("Long", strategy.long)
+    tradesToday += 1
+
+// Break-even shift at 1R
+if useBE and strategy.position_size > 0 and not beHit and not na(curSL)
+    avgE = strategy.position_avg_price
+    rDist = avgE - curSL
+    if high >= avgE + rDist
+        curSL := avgE
+        beHit := true
+
+if useBE and strategy.position_size < 0 and not beHit and not na(curSL)
+    avgE = strategy.position_avg_price
+    rDist = curSL - avgE
+    if low <= avgE - rDist
+        curSL := avgE
+        beHit := true
+
+// Place / update exit orders
+if strategy.position_size > 0
+    strategy.exit("LongX",  from_entry = "Long",  stop = curSL, limit = curTP)
+if strategy.position_size < 0
+    strategy.exit("ShortX", from_entry = "Short", stop = curSL, limit = curTP)
+
+// Force exit at 15:15
+if inExitTime and strategy.position_size != 0
+    strategy.close_all(comment = "EOD")
+
+// Track losses
+if strategy.closedtrades > strategy.closedtrades[1]
+    lastPnL = strategy.closedtrades.profit(strategy.closedtrades - 1)
+    if lastPnL < 0
+        lossesToday += 1
+
+// ===================== PLOTS =====================
+plot(showPDHL and trackPDHL and not pdhSwept ? pdh : na, "PDH", color = colKey, linewidth = 2, style = plot.style_linebr)
+plot(showPDHL and trackPDHL and not pdlSwept ? pdl : na, "PDL", color = colKey, linewidth = 2, style = plot.style_linebr)
+plot(showPDHL and trackPDHL and pdhSwept     ? pdh : na, "PDH (swept)", color = colSwept, linewidth = 1, style = plot.style_linebr)
+plot(showPDHL and trackPDHL and pdlSwept     ? pdl : na, "PDL (swept)", color = colSwept, linewidth = 1, style = plot.style_linebr)
+
+plot(showSessHL and trackSessHL ? sessHigh : na, "Sess High", color = colSess, linewidth = 1, style = plot.style_linebr)
+plot(showSessHL and trackSessHL ? sessLow  : na, "Sess Low",  color = colSess, linewidth = 1, style = plot.style_linebr)
+
+// Entry arrows
+plotshape(longSig  and showSignals, "LONG",  shape.triangleup,   location.belowbar, color = colBull, size = size.large, text = "LONG\nLiq Sweep",  textcolor = color.white)
+plotshape(shortSig and showSignals, "SHORT", shape.triangledown, location.abovebar, color = colBear, size = size.large, text = "SHORT\nLiq Sweep", textcolor = color.white)
+
+// SL / TP / Entry lines while in trade
+plot(showLevels and strategy.position_size != 0 ? strategy.position_avg_price : na, "Entry", color = color.new(#ffb454, 0), style = plot.style_linebr, linewidth = 2)
+plot(showLevels and strategy.position_size != 0 ? curSL : na, "SL", color = colSL, style = plot.style_linebr, linewidth = 2)
+plot(showLevels and strategy.position_size != 0 ? curTP : na, "TP", color = colTP, style = plot.style_linebr, linewidth = 2)
+
+// ===================== STATUS PANEL =====================
+if showPanel and barstate.islast
+    var table tbl = table.new(position.top_right, 2, 13,
+         bgcolor = color.new(#0b1020, 10),
+         border_width = 1, border_color = color.new(#5cf2c5, 60))
+
+    table.cell(tbl, 0, 0, "LIQ HUNTER", text_color = color.new(#5cf2c5, 0), text_size = size.normal,
+         bgcolor = color.new(#0b1020, 0))
+    table.cell(tbl, 1, 0, syminfo.ticker, text_color = color.white, text_size = size.small,
+         bgcolor = color.new(#0b1020, 0))
+
+    timeStr = str.tostring(istHour) + ":" + (istMin < 10 ? "0" : "") + str.tostring(istMin)
+    timeCol = inExitTime ? colBear : inWindow ? colBull : color.gray
+    table.cell(tbl, 0, 1, "Time IST", text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 1, 1, timeStr,    text_color = timeCol,    text_size = size.small)
+
+    activeHighs = 0
+    activeLows  = 0
+    if array.size(pools) > 0
+        for i = 0 to array.size(pools) - 1
+            p = array.get(pools, i)
+            if not p.swept
+                if p.isHigh
+                    activeHighs += 1
+                else
+                    activeLows += 1
+    table.cell(tbl, 0, 2, "Pools (live)", text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 1, 2, "Up " + str.tostring(activeHighs) + "  Dn " + str.tostring(activeLows),
+         text_color = color.white, text_size = size.small)
+
+    table.cell(tbl, 0, 3, "PDH", text_color = color.gray, text_size = size.small)
+    pdhStr = na(pdh) ? "--" : str.tostring(pdh, format.mintick) + (pdhSwept ? " (swept)" : "")
+    table.cell(tbl, 1, 3, pdhStr, text_color = pdhSwept ? colSwept : color.white, text_size = size.small)
+
+    table.cell(tbl, 0, 4, "PDL", text_color = color.gray, text_size = size.small)
+    pdlStr = na(pdl) ? "--" : str.tostring(pdl, format.mintick) + (pdlSwept ? " (swept)" : "")
+    table.cell(tbl, 1, 4, pdlStr, text_color = pdlSwept ? colSwept : color.white, text_size = size.small)
+
+    table.cell(tbl, 0, 5, "Sess High", text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 1, 5, str.tostring(sessHigh, format.mintick), text_color = color.white, text_size = size.small)
+    table.cell(tbl, 0, 6, "Sess Low",  text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 1, 6, str.tostring(sessLow,  format.mintick), text_color = color.white, text_size = size.small)
+
+    posStr = strategy.position_size > 0 ? "LONG @ " + str.tostring(strategy.position_avg_price, format.mintick) : strategy.position_size < 0 ? "SHORT @ " + str.tostring(strategy.position_avg_price, format.mintick) : "FLAT"
+    posCol = strategy.position_size > 0 ? colBull : strategy.position_size < 0 ? colBear : color.gray
+    table.cell(tbl, 0, 7, "Position", text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 1, 7, posStr,     text_color = posCol,     text_size = size.small)
+
+    table.cell(tbl, 0, 8, "Trades today", text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 1, 8, str.tostring(tradesToday) + " / " + str.tostring(maxTrades),
+         text_color = color.white, text_size = size.small)
+
+    table.cell(tbl, 0, 9, "Losses today", text_color = color.gray, text_size = size.small)
+    lossCol = lossesToday >= maxLosses ? colBear : color.white
+    table.cell(tbl, 1, 9, str.tostring(lossesToday) + " / " + str.tostring(maxLosses), text_color = lossCol, text_size = size.small)
+
+    table.cell(tbl, 0, 10, "Net P&L (Rs)", text_color = color.gray, text_size = size.small)
+    plCol = strategy.netprofit > 0 ? colBull : strategy.netprofit < 0 ? colBear : color.gray
+    table.cell(tbl, 1, 10, str.tostring(strategy.netprofit, "+0.00"), text_color = plCol, text_size = size.small)
+
+    table.cell(tbl, 0, 11, "Win rate", text_color = color.gray, text_size = size.small)
+    winRate = strategy.closedtrades > 0 ? (strategy.wintrades / strategy.closedtrades) * 100 : 0.0
+    table.cell(tbl, 1, 11, str.tostring(winRate, "0.0") + "%  (" + str.tostring(strategy.closedtrades) + " trades)",
+         text_color = color.white, text_size = size.small)
+
+    statusStr = lossesToday >= maxLosses ? "STOP - max losses" : tradesToday >= maxTrades ? "STOP - max trades" : inExitTime ? "EOD - close all" : strategy.position_size != 0 ? (beHit ? "IN TRADE (BE)" : "IN TRADE") : inWindow ? "Hunting liquidity" : "Out of window"
+    statusCol = lossesToday >= maxLosses or tradesToday >= maxTrades or inExitTime ? colBear : strategy.position_size != 0 ? color.new(#ffb454, 0) : inWindow ? colBull : color.gray
+    table.cell(tbl, 0, 12, "Status",  text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 1, 12, statusStr, text_color = statusCol,  text_size = size.small)
+
+// ===================== ALERTS =====================
+if longSig and alertEntry
+    alert("LIQUIDITY HUNT LONG on " + syminfo.ticker + "\nSwept low @ " + str.tostring(sweptLowLevel, format.mintick) + "\nEntry: " + str.tostring(close, format.mintick) + "\nSL: " + str.tostring(curSL, format.mintick) + "\nTP: " + str.tostring(curTP, format.mintick) + "  (R:R = " + str.tostring(tpRR, "0.0") + ")", alert.freq_once_per_bar_close)
+
+if shortSig and alertEntry
+    alert("LIQUIDITY HUNT SHORT on " + syminfo.ticker + "\nSwept high @ " + str.tostring(sweptHighLevel, format.mintick) + "\nEntry: " + str.tostring(close, format.mintick) + "\nSL: " + str.tostring(curSL, format.mintick) + "\nTP: " + str.tostring(curTP, format.mintick) + "  (R:R = " + str.tostring(tpRR, "0.0") + ")", alert.freq_once_per_bar_close)
+
+if alertSweep and (anySweepHigh or anySweepLow)
+    alert("Liquidity sweep detected on " + syminfo.ticker + " - watching for entry confirmation.", alert.freq_once_per_bar_close)
+
+// =============================================================================
+//  END
+// =============================================================================
