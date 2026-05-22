@@ -1,25 +1,26 @@
 //@version=6
 // =============================================================================
-//  ORB-VWAP Income Pro — Indian Intraday System
-//  Pine Script v6 | Educational use | Not financial advice
+//  ORB-VWAP Income Pro v2 — Indian Intraday System
+//  Pine Script v6 | Educational use only | Not financial advice
+//
+//  WHAT'S NEW IN v2 (anti-stop-hunt upgrade):
+//   - Retest entry mode (waits for breakout + retest, not chase)
+//   - Volume confirmation filter
+//   - Daily ATR filter (skip chop days)
+//   - ATR-buffered stop loss (beyond the obvious ORB level)
+//   - Auto break-even shift at 1R profit
 //
 //  STRATEGY (6 rules):
 //   1. Mark first 15-min range (9:15-9:30 IST) = ORB
-//   2. After 9:30, breakout above ORB-High -> LONG bias
-//                  breakout below ORB-Low  -> SHORT bias
-//   3. FILTER: price must agree with VWAP and 50 EMA (trend filter)
-//   4. ENTRY:  on close of breakout candle
-//   5. SL: opposite ORB level | TP: 1.5R (configurable)
-//   6. RISK CONTROLS:
-//      - Max 3 trades / day
-//      - Stop after 2 losses
-//      - No new trades after 14:30 IST
-//      - Force exit by 15:15 IST
-//
-//  Uses strategy() so you see real backtested P&L in Strategy Tester tab.
+//   2. After 9:30, breakout above ORB-High -> long bias
+//                  breakout below ORB-Low  -> short bias
+//   3. FILTERS: VWAP align, EMA align, volume confirm, daily ATR ok
+//   4. ENTRY:  retest of ORB level after breakout (default), or direct
+//   5. SL: ORB level +/- ATR buffer | TP: 1.5R | BE shift at 1R
+//   6. RISK: max 3 trades/day, stop after 2 losses, no entries past 14:30
 // =============================================================================
 
-strategy("ORB-VWAP Income Pro [Indian]", "ORB-VWAP",
+strategy("ORB-VWAP Income Pro v2 [Indian]", "ORB-VWAP v2",
      overlay = true,
      initial_capital = 200000,
      default_qty_type = strategy.fixed,
@@ -31,45 +32,57 @@ strategy("ORB-VWAP Income Pro [Indian]", "ORB-VWAP",
      process_orders_on_close = true)
 
 // ===================== INPUTS =====================
-g1 = "Strategy"
-orbMin   = input.int(15,  "ORB duration (minutes)", minval = 5, maxval = 60, group = g1,
-             tooltip = "First N minutes of the session define the breakout range. 15 is standard for Indian intraday.")
-emaLen   = input.int(50,  "Trend EMA length", minval = 10, group = g1)
-rrTarget = input.float(1.5, "Take-profit R:R", minval = 1.0, step = 0.1, group = g1,
-             tooltip = "Target = entry +/- (SL distance x this multiplier). 1.5 = balanced.")
+g1 = "Strategy Core"
+orbMin   = input.int(15, "ORB duration (minutes)", minval = 5, maxval = 60, group = g1)
+emaLen   = input.int(50, "Trend EMA length", minval = 10, group = g1)
+rrTarget = input.float(1.5, "Take-profit R:R", minval = 1.0, step = 0.1, group = g1)
 useVWAP  = input.bool(true, "Require VWAP alignment", group = g1)
 useEMA   = input.bool(true, "Require 50 EMA alignment", group = g1)
 
-g2 = "Risk Controls"
-maxTrades = input.int(3, "Max trades per day", minval = 1, maxval = 10, group = g2)
-maxLosses = input.int(2, "Stop after N losses", minval = 1, maxval = 5, group = g2)
+g2 = "Anti-Stop-Hunt Filters (v2)"
+useRetest    = input.bool(true,  "Wait for retest of ORB after breakout", group = g2,
+     tooltip = "MUCH higher win rate. Cuts false breakouts. Recommended ON.")
+useVolume    = input.bool(true,  "Require breakout volume confirmation", group = g2)
+volMult      = input.float(1.2, "Volume multiplier vs 20-bar avg", minval = 1.0, step = 0.1, group = g2)
+useATRfilter = input.bool(true,  "Skip choppy / low-volatility days", group = g2,
+     tooltip = "Skips days where daily ATR is below threshold. Avoids range-bound chop where ORB has no edge.")
+minATRPct    = input.float(0.4, "Min daily ATR as % of price", minval = 0.1, step = 0.05, group = g2)
+slBuffer     = input.float(0.3, "SL buffer beyond ORB (x ATR-14)", minval = 0.0, step = 0.05, group = g2,
+     tooltip = "Extra cushion beyond ORB level so stop hunts dont take you out. 0.3 = 30% of ATR. Higher = wider stop, smaller size.")
+useBE        = input.bool(true,  "Move SL to break-even at 1R profit", group = g2)
 
-g3 = "Display"
-showORB    = input.bool(true, "Show ORB box & lines",  group = g3)
-showSignal = input.bool(true, "Show entry arrows",      group = g3)
-showLevels = input.bool(true, "Show SL / TP for active trade", group = g3)
-showPanel  = input.bool(true, "Show stats panel",       group = g3)
+g3 = "Risk Controls"
+maxTrades = input.int(3, "Max trades per day", minval = 1, maxval = 10, group = g3)
+maxLosses = input.int(2, "Stop after N losses", minval = 1, maxval = 5, group = g3)
 
-g4 = "Alerts"
-alertEntry = input.bool(true, "Alert on new entry", group = g4)
-alertExit  = input.bool(true, "Alert on exit",      group = g4)
+g4 = "Display"
+showORB    = input.bool(true, "Show ORB box & lines",  group = g4)
+showSignal = input.bool(true, "Show entry arrows",     group = g4)
+showLevels = input.bool(true, "Show SL / TP for active trade", group = g4)
+showPanel  = input.bool(true, "Show stats panel",      group = g4)
 
-g5 = "Colors"
-colBull = input.color(color.new(#22c98a, 0),  "Long / Bullish",  group = g5)
-colBear = input.color(color.new(#ff5b6b, 0),  "Short / Bearish", group = g5)
-colORB  = input.color(color.new(#5cf2c5, 80), "ORB fill",        group = g5)
-colVWAP = input.color(color.new(#ffb454, 0),  "VWAP",            group = g5)
-colEMA  = input.color(color.new(#8a7bff, 30), "EMA",             group = g5)
+g5 = "Alerts"
+alertEntry = input.bool(true, "Alert on new entry", group = g5)
+alertExit  = input.bool(true, "Alert on exit",      group = g5)
+
+g6 = "Colors"
+colBull = input.color(color.new(#22c98a, 0),  "Long / Bullish",  group = g6)
+colBear = input.color(color.new(#ff5b6b, 0),  "Short / Bearish", group = g6)
+colORB  = input.color(color.new(#5cf2c5, 80), "ORB fill",        group = g6)
+colVWAP = input.color(color.new(#ffb454, 0),  "VWAP",            group = g6)
+colEMA  = input.color(color.new(#8a7bff, 30), "EMA",             group = g6)
+colSL   = input.color(color.new(#ff5b6b, 30), "SL line",         group = g6)
+colTP   = input.color(color.new(#22c98a, 30), "TP line",         group = g6)
 
 // ===================== TIME LOGIC (IST) =====================
 istHour = hour(time, "Asia/Kolkata")
 istMin  = minute(time, "Asia/Kolkata")
 mins    = istHour * 60 + istMin
 
-orbStartM  = 9 * 60 + 15            // 09:15
-orbEndM    = orbStartM + orbMin     // 09:15 + N
-tradeEndM  = 14 * 60 + 30           // 14:30 - no new entries after
-forceExitM = 15 * 60 + 15           // 15:15 - close all
+orbStartM  = 9 * 60 + 15
+orbEndM    = orbStartM + orbMin
+tradeEndM  = 14 * 60 + 30
+forceExitM = 15 * 60 + 15
 
 inORB    = mins >= orbStartM and mins < orbEndM
 afterORB = mins >= orbEndM and mins < tradeEndM
@@ -83,15 +96,25 @@ var int   orbBar  = na
 var int   tradesToday = 0
 var int   lossesToday = 0
 
-// Reset every new day
+var bool  brokeUp   = false
+var bool  brokeDown = false
+var int   breakBar  = na
+
+var float curSL   = na
+var float curTP   = na
+var bool  beHit   = false
+
 if isNewDay
     orbHigh     := na
     orbLow      := na
     orbBar      := na
     tradesToday := 0
     lossesToday := 0
+    brokeUp     := false
+    brokeDown   := false
+    breakBar    := na
 
-// Build ORB during the 9:15-9:30 window
+// Build ORB
 if inORB
     if na(orbBar)
         orbBar  := bar_index
@@ -104,91 +127,136 @@ if inORB
 // ===================== INDICATORS =====================
 emaVal  = ta.ema(close, emaLen)
 vwapVal = ta.vwap(hlc3)
+atrVal  = ta.atr(14)
+volAvg  = ta.sma(volume, 20)
 
-// ===================== SIGNAL LOGIC =====================
-canTrade = afterORB and not inExit and tradesToday < maxTrades and lossesToday < maxLosses and not na(orbHigh) and not na(orbLow) and strategy.position_size == 0
+// Daily ATR for chop-day filter
+dailyATR = request.security(syminfo.tickerid, "1D", ta.atr(14)[1], lookahead = barmerge.lookahead_on)
+atrPct   = (dailyATR / close) * 100
 
+// ===================== BREAKOUT TRACKING (for retest) =====================
+if afterORB and not na(orbHigh)
+    if close > orbHigh and not brokeUp and not brokeDown
+        brokeUp  := true
+        breakBar := bar_index
+    if close < orbLow and not brokeDown and not brokeUp
+        brokeDown := true
+        breakBar  := bar_index
+
+// ===================== ENTRY TRIGGERS =====================
+// Retest mode: breakout already happened, price came back to ORB level, then closed back beyond
+retestLong  = brokeUp   and low  <= orbHigh and close > orbHigh and bar_index > breakBar
+retestShort = brokeDown and high >= orbLow  and close < orbLow  and bar_index > breakBar
+
+// Direct mode: classic breakout entry
+directLong  = ta.crossover (close, orbHigh)
+directShort = ta.crossunder(close, orbLow)
+
+// Pick mode
+longTrig  = useRetest ? retestLong  : directLong
+shortTrig = useRetest ? retestShort : directShort
+
+// ===================== FILTERS =====================
 vwapLongOK  = not useVWAP or close > vwapVal
 vwapShortOK = not useVWAP or close < vwapVal
 emaLongOK   = not useEMA  or close > emaVal
 emaShortOK  = not useEMA  or close < emaVal
+volOK       = not useVolume or volume >= volAvg * volMult
+atrOK       = not useATRfilter or atrPct >= minATRPct
 
-longSig  = canTrade and ta.crossover(close,  orbHigh) and vwapLongOK  and emaLongOK
-shortSig = canTrade and ta.crossunder(close, orbLow)  and vwapShortOK and emaShortOK
+canTrade = afterORB and not inExit and tradesToday < maxTrades and lossesToday < maxLosses and not na(orbHigh) and not na(orbLow) and strategy.position_size == 0
+
+longSig  = canTrade and longTrig  and vwapLongOK  and emaLongOK  and volOK and atrOK
+shortSig = canTrade and shortTrig and vwapShortOK and emaShortOK and volOK and atrOK
 
 // ===================== EXECUTION =====================
 if longSig
-    slPrice = orbLow
-    tpPrice = close + (close - orbLow) * rrTarget
+    curSL := orbLow - atrVal * slBuffer
+    risk = close - curSL
+    curTP := close + risk * rrTarget
+    beHit := false
     strategy.entry("Long", strategy.long)
-    strategy.exit("LongX", from_entry = "Long", stop = slPrice, limit = tpPrice)
     tradesToday += 1
 
 if shortSig
-    slPrice = orbHigh
-    tpPrice = close - (orbHigh - close) * rrTarget
+    curSL := orbHigh + atrVal * slBuffer
+    risk = curSL - close
+    curTP := close - risk * rrTarget
+    beHit := false
     strategy.entry("Short", strategy.short)
-    strategy.exit("ShortX", from_entry = "Short", stop = slPrice, limit = tpPrice)
     tradesToday += 1
+
+// Break-even shift at 1R
+if useBE and strategy.position_size > 0 and not beHit and not na(curSL)
+    avgE  = strategy.position_avg_price
+    rDist = avgE - curSL
+    if high >= avgE + rDist
+        curSL := avgE
+        beHit := true
+
+if useBE and strategy.position_size < 0 and not beHit and not na(curSL)
+    avgE  = strategy.position_avg_price
+    rDist = curSL - avgE
+    if low <= avgE - rDist
+        curSL := avgE
+        beHit := true
+
+// Place / update exit orders
+if strategy.position_size > 0
+    strategy.exit("LongX",  from_entry = "Long",  stop = curSL, limit = curTP)
+if strategy.position_size < 0
+    strategy.exit("ShortX", from_entry = "Short", stop = curSL, limit = curTP)
 
 // Force exit at 15:15
 if inExit and strategy.position_size != 0
     strategy.close_all(comment = "EOD")
 
-// Track losses
+// Track losses (count after a closed trade resolves negative)
 if strategy.closedtrades > strategy.closedtrades[1]
     lastPnL = strategy.closedtrades.profit(strategy.closedtrades - 1)
     if lastPnL < 0
         lossesToday += 1
 
 // ===================== PLOTS =====================
-plot(useVWAP   ? vwapVal : na, "VWAP",          color = colVWAP, linewidth = 2)
-plot(useEMA    ? emaVal  : na, "EMA",           color = colEMA,  linewidth = 1)
+plot(useVWAP   ? vwapVal : na, "VWAP", color = colVWAP, linewidth = 2)
+plot(useEMA    ? emaVal  : na, "EMA",  color = colEMA,  linewidth = 1)
 plot(showORB and not na(orbHigh) ? orbHigh : na, "ORB High", color = colBull, linewidth = 2, style = plot.style_linebr)
 plot(showORB and not na(orbLow)  ? orbLow  : na, "ORB Low",  color = colBear, linewidth = 2, style = plot.style_linebr)
 
-// ORB box
 var box orbBox = na
 if showORB and afterORB and not na(orbHigh) and barstate.islast
     box.delete(orbBox)
     orbBox := box.new(orbBar, orbHigh, bar_index + 30, orbLow,
-         bgcolor = colORB,
-         border_color = color.new(#5cf2c5, 50),
-         border_width = 1,
-         extend = extend.right)
+         bgcolor = colORB, border_color = color.new(#5cf2c5, 50), border_width = 1, extend = extend.right)
 
-// Entry arrows
 plotshape(longSig  and showSignal, "LONG",  shape.triangleup,   location.belowbar, color = colBull, size = size.large, text = "LONG",  textcolor = color.white)
 plotshape(shortSig and showSignal, "SHORT", shape.triangledown, location.abovebar, color = colBear, size = size.large, text = "SHORT", textcolor = color.white)
 
-// Entry price line for active trade
+// SL / TP / entry lines while in trade
 plot(showLevels and strategy.position_size != 0 ? strategy.position_avg_price : na, "Entry", color = color.new(#ffb454, 0), style = plot.style_linebr, linewidth = 2)
+plot(showLevels and strategy.position_size != 0 ? curSL : na, "SL", color = colSL, style = plot.style_linebr, linewidth = 2)
+plot(showLevels and strategy.position_size != 0 ? curTP : na, "TP", color = colTP, style = plot.style_linebr, linewidth = 2)
 
 // ===================== STATUS PANEL =====================
 if showPanel and barstate.islast
-    var table tbl = table.new(position.top_right, 2, 12,
+    var table tbl = table.new(position.top_right, 2, 14,
          bgcolor = color.new(#0b1020, 10),
-         border_width = 1,
-         border_color = color.new(#5cf2c5, 60))
+         border_width = 1, border_color = color.new(#5cf2c5, 60))
 
-    table.cell(tbl, 0, 0, "ORB-VWAP PRO",
-         text_color = color.new(#5cf2c5, 0), text_size = size.normal,
-         bgcolor = color.new(#0b1020, 0))
-    table.cell(tbl, 1, 0, syminfo.ticker,
-         text_color = color.white, text_size = size.small,
-         bgcolor = color.new(#0b1020, 0))
+    table.cell(tbl, 0, 0, "ORB-VWAP v2", text_color = color.new(#5cf2c5, 0), text_size = size.normal, bgcolor = color.new(#0b1020, 0))
+    table.cell(tbl, 1, 0, syminfo.ticker, text_color = color.white, text_size = size.small, bgcolor = color.new(#0b1020, 0))
 
     timeStr = str.tostring(istHour) + ":" + (istMin < 10 ? "0" : "") + str.tostring(istMin)
     timeCol = inExit ? colBear : afterORB ? colBull : color.gray
-    table.cell(tbl, 0, 1, "Time IST",  text_color = color.gray, text_size = size.small)
-    table.cell(tbl, 1, 1, timeStr,     text_color = timeCol,    text_size = size.small)
+    table.cell(tbl, 0, 1, "Time IST", text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 1, 1, timeStr,    text_color = timeCol,    text_size = size.small)
 
     table.cell(tbl, 0, 2, "ORB High",  text_color = color.gray, text_size = size.small)
     table.cell(tbl, 1, 2, na(orbHigh) ? "--" : str.tostring(orbHigh, format.mintick), text_color = color.white, text_size = size.small)
     table.cell(tbl, 0, 3, "ORB Low",   text_color = color.gray, text_size = size.small)
     table.cell(tbl, 1, 3, na(orbLow)  ? "--" : str.tostring(orbLow,  format.mintick), text_color = color.white, text_size = size.small)
 
-    table.cell(tbl, 0, 4, "VWAP",      text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 0, 4, "VWAP", text_color = color.gray, text_size = size.small)
     table.cell(tbl, 1, 4, str.tostring(vwapVal, format.mintick), text_color = color.white, text_size = size.small)
 
     trendStr = close > emaVal ? "BULLISH" : "BEARISH"
@@ -196,40 +264,51 @@ if showPanel and barstate.islast
     table.cell(tbl, 0, 5, "Trend (50EMA)", text_color = color.gray, text_size = size.small)
     table.cell(tbl, 1, 5, trendStr,        text_color = trendCol,   text_size = size.small)
 
+    // v2 NEW rows: filter status
+    table.cell(tbl, 0, 6, "Volume",    text_color = color.gray, text_size = size.small)
+    volStr = useVolume ? (volume >= volAvg * volMult ? "OK" : "low") : "off"
+    volCol = useVolume ? (volume >= volAvg * volMult ? colBull : colBear) : color.gray
+    table.cell(tbl, 1, 6, volStr,      text_color = volCol,     text_size = size.small)
+
+    table.cell(tbl, 0, 7, "Daily ATR%", text_color = color.gray, text_size = size.small)
+    atrStr = str.tostring(atrPct, "0.00") + "%" + (useATRfilter ? (atrOK ? "  OK" : "  CHOP") : "  off")
+    atrCol = useATRfilter ? (atrOK ? colBull : colBear) : color.white
+    table.cell(tbl, 1, 7, atrStr,       text_color = atrCol,     text_size = size.small)
+
     posStr = strategy.position_size > 0 ? "LONG @ " + str.tostring(strategy.position_avg_price, format.mintick) : strategy.position_size < 0 ? "SHORT @ " + str.tostring(strategy.position_avg_price, format.mintick) : "FLAT"
     posCol = strategy.position_size > 0 ? colBull : strategy.position_size < 0 ? colBear : color.gray
-    table.cell(tbl, 0, 6, "Position",  text_color = color.gray, text_size = size.small)
-    table.cell(tbl, 1, 6, posStr,      text_color = posCol,     text_size = size.small)
+    table.cell(tbl, 0, 8, "Position", text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 1, 8, posStr,     text_color = posCol,     text_size = size.small)
 
-    table.cell(tbl, 0, 7, "Trades today", text_color = color.gray, text_size = size.small)
-    table.cell(tbl, 1, 7, str.tostring(tradesToday) + " / " + str.tostring(maxTrades), text_color = color.white, text_size = size.small)
+    table.cell(tbl, 0, 9, "Trades today", text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 1, 9, str.tostring(tradesToday) + " / " + str.tostring(maxTrades), text_color = color.white, text_size = size.small)
 
-    table.cell(tbl, 0, 8, "Losses today", text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 0, 10, "Losses today", text_color = color.gray, text_size = size.small)
     lossCol = lossesToday >= maxLosses ? colBear : color.white
-    table.cell(tbl, 1, 8, str.tostring(lossesToday) + " / " + str.tostring(maxLosses), text_color = lossCol, text_size = size.small)
+    table.cell(tbl, 1, 10, str.tostring(lossesToday) + " / " + str.tostring(maxLosses), text_color = lossCol, text_size = size.small)
 
-    table.cell(tbl, 0, 9, "Net P&L (Rs)", text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 0, 11, "Net P&L (Rs)", text_color = color.gray, text_size = size.small)
     plCol = strategy.netprofit > 0 ? colBull : strategy.netprofit < 0 ? colBear : color.gray
-    table.cell(tbl, 1, 9, str.tostring(strategy.netprofit, "+0.00"), text_color = plCol, text_size = size.small)
+    table.cell(tbl, 1, 11, str.tostring(strategy.netprofit, "+0.00"), text_color = plCol, text_size = size.small)
 
-    table.cell(tbl, 0, 10, "Win rate", text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 0, 12, "Win rate", text_color = color.gray, text_size = size.small)
     winRate = strategy.closedtrades > 0 ? (strategy.wintrades / strategy.closedtrades) * 100 : 0.0
-    table.cell(tbl, 1, 10, str.tostring(winRate, "0.0") + "%  (" + str.tostring(strategy.closedtrades) + " trades)", text_color = color.white, text_size = size.small)
+    table.cell(tbl, 1, 12, str.tostring(winRate, "0.0") + "%  (" + str.tostring(strategy.closedtrades) + " trades)", text_color = color.white, text_size = size.small)
 
-    statusStr = lossesToday >= maxLosses ? "STOPPED - max losses" : tradesToday >= maxTrades ? "STOPPED - max trades" : inExit ? "EOD - closing all" : strategy.position_size != 0 ? "IN TRADE" : afterORB ? "SCANNING" : inORB ? "Building ORB" : "Pre-market"
-    statusCol = lossesToday >= maxLosses or tradesToday >= maxTrades or inExit ? colBear : strategy.position_size != 0 ? color.new(#ffb454, 0) : afterORB ? colBull : color.gray
-    table.cell(tbl, 0, 11, "Status", text_color = color.gray, text_size = size.small)
-    table.cell(tbl, 1, 11, statusStr, text_color = statusCol, text_size = size.small)
+    statusStr = lossesToday >= maxLosses ? "STOP - max losses" : tradesToday >= maxTrades ? "STOP - max trades" : inExit ? "EOD" : not atrOK and afterORB ? "CHOP DAY - skip" : strategy.position_size != 0 ? (beHit ? "IN TRADE (BE)" : "IN TRADE") : afterORB ? (useRetest and (brokeUp or brokeDown) ? "Wait for retest" : "Scanning") : inORB ? "Building ORB" : "Pre-market"
+    statusCol = lossesToday >= maxLosses or tradesToday >= maxTrades or inExit or (not atrOK and afterORB) ? colBear : strategy.position_size != 0 ? color.new(#ffb454, 0) : afterORB ? colBull : color.gray
+    table.cell(tbl, 0, 13, "Status",  text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 1, 13, statusStr, text_color = statusCol,  text_size = size.small)
 
 // ===================== ALERTS =====================
 if longSig and alertEntry
-    alert("ORB LONG on " + syminfo.ticker + "\nEntry: " + str.tostring(close, format.mintick) + "\nSL: " + str.tostring(orbLow, format.mintick) + "\nTP: " + str.tostring(close + (close - orbLow) * rrTarget, format.mintick) + "\nRisk <= 1% of capital.", alert.freq_once_per_bar_close)
+    alert("ORB LONG on " + syminfo.ticker + "\nEntry: " + str.tostring(close, format.mintick) + "\nSL: " + str.tostring(curSL, format.mintick) + "\nTP: " + str.tostring(curTP, format.mintick), alert.freq_once_per_bar_close)
 
 if shortSig and alertEntry
-    alert("ORB SHORT on " + syminfo.ticker + "\nEntry: " + str.tostring(close, format.mintick) + "\nSL: " + str.tostring(orbHigh, format.mintick) + "\nTP: " + str.tostring(close - (orbHigh - close) * rrTarget, format.mintick) + "\nRisk <= 1% of capital.", alert.freq_once_per_bar_close)
+    alert("ORB SHORT on " + syminfo.ticker + "\nEntry: " + str.tostring(close, format.mintick) + "\nSL: " + str.tostring(curSL, format.mintick) + "\nTP: " + str.tostring(curTP, format.mintick), alert.freq_once_per_bar_close)
 
 if alertExit and inExit and strategy.position_size != 0
-    alert("EOD EXIT on " + syminfo.ticker + " at " + str.tostring(close, format.mintick), alert.freq_once_per_bar_close)
+    alert("EOD EXIT on " + syminfo.ticker + " @ " + str.tostring(close, format.mintick), alert.freq_once_per_bar_close)
 
 // =============================================================================
 //  END
