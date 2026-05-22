@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SMT Divergence Mastery — Indian Options Trading Mentor Guide</title>
+<style>
+  /* ============ THEME ============ */
+  :root{
+    --bg:#0b1020;
+    --bg2:#111935;
+    --card:#15203f;
+    --card2:#1b2a52;
+    --line:#2a3a6b;
+    --text:#e7ecf7;
+    --muted:#9aa6c5;
+    --accent:#5cf2c5;     /* teal/green */
+    --accent2:#8a7bff;    /* purple */
+    --warn:#ffb454;       /* amber */
+    --danger:#ff6b6b;     /* red */
+    --good:#5cf2c5;
+    --bull:#22c98a;
+    --bear:#ff5b6b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:linear-gradient(180deg,#070a18 0%,#0b1020 100%);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;line-height:1.6}
+  a{color:var(--accent)}
+  h1,h2,h3,h4{font-weight:700;line-height:1.25}
+  h1{font-size:2.4rem;margin:0 0 .4rem}
+  h2{font-size:1.7rem;margin:2.2rem 0 1rem;padding-bottom:.4rem;border-bottom:2px solid var(--line);color:#fff}
+  h3{font-size:1.25rem;margin:1.2rem 0 .6rem;color:var(--accent)}
+  h4{font-size:1.05rem;margin:1rem 0 .3rem;color:var(--accent2)}
+  p{margin:.4rem 0 .8rem}
+  code{background:#0a1130;padding:2px 6px;border-radius:4px;color:var(--warn);font-size:.92em}
+
+  /* ============ LAYOUT ============ */
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 20px 80px}
+  .hero{
+    background:radial-gradient(1200px 400px at 10% -50%, rgba(138,123,255,.25), transparent 60%),
+               radial-gradient(900px 400px at 100% 0%, rgba(92,242,197,.18), transparent 60%),
+               linear-gradient(135deg,#121a3a,#0d1330);
+    border:1px solid var(--line);border-radius:20px;padding:36px 32px;margin-bottom:28px;
+  }
+  .hero .tag{display:inline-block;font-size:.78rem;letter-spacing:.18em;color:var(--accent);background:rgba(92,242,197,.08);border:1px solid rgba(92,242,197,.25);padding:5px 12px;border-radius:999px;text-transform:uppercase;margin-bottom:14px}
+  .hero p.lead{color:var(--muted);font-size:1.05rem;max-width:850px}
+
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin:18px 0 30px}
+  .toc h3{margin:0 0 8px;color:#fff}
+  .toc ol{margin:0;padding-left:22px;columns:2;column-gap:32px}
+  .toc li{margin:4px 0;break-inside:avoid}
+  .toc a{text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+
+  /* ============ CARDS / BOXES ============ */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:14px 0}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:820px){.grid-2,.grid-3{grid-template-columns:1fr}.toc ol{columns:1}}
+
+  .pro{border-left:4px solid var(--good);background:linear-gradient(90deg,rgba(92,242,197,.08),transparent)}
+  .con{border-left:4px solid var(--danger);background:linear-gradient(90deg,rgba(255,107,107,.08),transparent)}
+  .warn-box{border-left:4px solid var(--warn);background:linear-gradient(90deg,rgba(255,180,84,.08),transparent)}
+  .secret{border-left:4px solid var(--accent2);background:linear-gradient(90deg,rgba(138,123,255,.10),transparent)}
+  .secret h3::before{content:"\1F50D  ";}
+  .pro h3::before{content:"\2705  ";}
+  .con h3::before{content:"\274C  ";}
+  .warn-box h3::before{content:"\26A0\FE0F  ";}
+
+  ul.tight li{margin:4px 0}
+  ul.checks{list-style:none;padding-left:0}
+  ul.checks li{padding:6px 0 6px 28px;position:relative}
+  ul.checks li::before{content:"\2713";position:absolute;left:6px;top:6px;color:var(--good);font-weight:bold}
+  ul.crosses{list-style:none;padding-left:0}
+  ul.crosses li{padding:6px 0 6px 28px;position:relative}
+  ul.crosses li::before{content:"\2715";position:absolute;left:6px;top:6px;color:var(--danger);font-weight:bold}
+
+  /* ============ FLOWCHART ============ */
+  .flow{display:flex;flex-direction:column;align-items:center;gap:14px;margin:18px 0}
+  .node{
+    background:linear-gradient(180deg,#1a2552,#15203f);
+    border:1px solid var(--line);
+    border-radius:12px;padding:14px 18px;min-width:280px;max-width:560px;text-align:center;
+    box-shadow:0 6px 18px rgba(0,0,0,.25);
+  }
+  .node.start{border-color:var(--accent);background:linear-gradient(180deg,#0f3d33,#0b2a25);color:#d8fff1}
+  .node.end-bull{border-color:var(--bull);background:linear-gradient(180deg,#10412e,#0a2a1f);color:#c8ffe0}
+  .node.end-bear{border-color:var(--bear);background:linear-gradient(180deg,#3d1b22,#2b121a);color:#ffd6dc}
+  .node.decision{border-color:var(--warn);background:linear-gradient(180deg,#3d2c10,#2a1f0a);color:#ffe9c2;border-radius:8px;transform:rotate(0deg)}
+  .node.reject{border-color:var(--danger);background:linear-gradient(180deg,#3a1014,#260a0d);color:#ffc7c9}
+  .arrow{width:2px;height:26px;background:linear-gradient(180deg,var(--accent),var(--accent2));position:relative}
+  .arrow::after{content:"";position:absolute;left:-5px;bottom:-1px;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--accent2)}
+  .branch{display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+  .branch .col{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .label-edge{font-size:.78rem;color:var(--muted);background:#0a1130;border:1px solid var(--line);padding:2px 8px;border-radius:6px}
+
+  /* ============ TABLES ============ */
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.95rem}
+  th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{background:#0e1635;color:#fff;letter-spacing:.04em;text-transform:uppercase;font-size:.78rem}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  td.bull{color:var(--bull);font-weight:600}
+  td.bear{color:var(--bear);font-weight:600}
+
+  /* ============ CHART DIAGRAM (SVG cards) ============ */
+  .diagram{background:#0a1130;border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0}
+  .diagram svg{display:block;width:100%;height:auto}
+
+  /* ============ TIMELINE ============ */
+  .timeline{position:relative;margin:20px 0;padding-left:30px;border-left:3px solid var(--line)}
+  .tl-item{position:relative;margin:14px 0;padding:14px 18px;background:var(--card);border:1px solid var(--line);border-radius:10px}
+  .tl-item::before{content:"";position:absolute;left:-39px;top:18px;width:14px;height:14px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(92,242,197,.2)}
+  .tl-item h4{margin:0 0 4px;color:#fff}
+  .tl-item .day{font-size:.78rem;letter-spacing:.18em;color:var(--accent2);text-transform:uppercase}
+
+  /* ============ PILLS ============ */
+  .pill{display:inline-block;font-size:.75rem;letter-spacing:.06em;padding:3px 10px;border-radius:999px;background:#0a1130;border:1px solid var(--line);color:var(--muted);margin-right:6px}
+  .pill.bull{color:var(--bull);border-color:rgba(34,201,138,.4);background:rgba(34,201,138,.08)}
+  .pill.bear{color:var(--bear);border-color:rgba(255,91,107,.4);background:rgba(255,91,107,.08)}
+  .pill.warn{color:var(--warn);border-color:rgba(255,180,84,.4);background:rgba(255,180,84,.08)}
+
+  /* ============ CALLOUTS ============ */
+  .callout{background:linear-gradient(135deg,#1a1f4a,#15203f);border:1px solid var(--accent2);border-radius:14px;padding:18px 22px;margin:18px 0;position:relative}
+  .callout::before{content:"\1F4A1";font-size:1.4rem;position:absolute;top:14px;right:18px}
+  .callout h3{margin-top:0}
+
+  .danger-banner{background:linear-gradient(135deg,#3a0e15,#2a0810);border:1px solid var(--danger);border-radius:14px;padding:16px 22px;margin:18px 0;color:#ffd6dc}
+  .danger-banner strong{color:#fff}
+
+  /* ============ FOOTER ============ */
+  footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:.88rem;text-align:center}
+
+  /* ============ PRINT ============ */
+  @media print{
+    body{background:#fff;color:#000}
+    .hero,.card,.toc,.callout,.danger-banner{background:#fff!important;color:#000!important;border-color:#bbb!important}
+    .node{background:#f4f4f4!important;color:#000!important;border-color:#888!important}
+    h2,h3,h4{color:#000!important}
+    .pill{color:#000!important}
+    a{color:#000;text-decoration:underline}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <span class="tag">Mentor Guide • Indian Options Edition</span>
+    <h1>SMT Divergence Mastery</h1>
+    <p class="lead">A no-fluff, brutally honest blueprint to read the Indian markets (NIFTY, BANKNIFTY, FINNIFTY, SENSEX) using <strong>Smart Money Technique (SMT) Divergence</strong> — the same confluence tool institutional desks use across correlated assets. This is not a "get rich in 15 days" file. This is the framework that, with screen time, builds a real edge.</p>
+    <div style="margin-top:14px">
+      <span class="pill bull">Strategy</span>
+      <span class="pill">SMT + Liquidity + MSS + FVG</span>
+      <span class="pill warn">Risk: Educational only</span>
+    </div>
+  </section>
+
+  <!-- ============ HARD TRUTHS ============ -->
+  <div class="danger-banner">
+    <strong>Read this first — Mentor's Honesty Note:</strong>
+    <ul class="tight" style="margin-top:8px">
+      <li>SMT Divergence is <strong>not a complete strategy</strong> on its own. It is a <em>confirmation</em> tool inside an ICT-based framework. Treating it as a standalone signal is the #1 reason traders blow accounts using it.</li>
+      <li>"15 days to pro" is unrealistic. 15 days is enough to learn the <em>language</em> of price. Real consistency takes <strong>6–24 months of journaled screen time</strong>. Don't trade real capital before that.</li>
+      <li>Psychology only works <em>on top of</em> a tested edge. Discipline applied to a losing system loses money slower — it doesn't make money. Build the edge first.</li>
+      <li>This document is <strong>educational only</strong>. It is not investment advice. Markets carry the risk of total capital loss.</li>
+    </ul>
+  </div>
+
+  <!-- ============ TOC ============ -->
+  <nav class="toc">
+    <h3>What you'll learn</h3>
+    <ol>
+      <li><a href="#what">What SMT Divergence Actually Is</a></li>
+      <li><a href="#why">Why It Works (the institutional logic)</a></li>
+      <li><a href="#pairs">Correlated Pairs in Indian Markets</a></li>
+      <li><a href="#types">Types of SMT (Bullish / Bearish / Hidden)</a></li>
+      <li><a href="#identify">How to Identify SMT — Step by Step</a></li>
+      <li><a href="#flow">The Master Decision Flowchart</a></li>
+      <li><a href="#aplus">A+ Setup Checklist (high probability)</a></li>
+      <li><a href="#trap">Failure / Trap Setups (avoid these)</a></li>
+      <li><a href="#entry">Entry, Stop-Loss & Target Rules</a></li>
+      <li><a href="#options">Indian Options-Specific Execution</a></li>
+      <li><a href="#secrets">What Nobody Tells You (the hidden truths)</a></li>
+      <li><a href="#psych">Psychology &amp; The Trader's Mind</a></li>
+      <li><a href="#risk">Risk Management Math</a></li>
+      <li><a href="#15day">15-Day Realistic Learning Roadmap</a></li>
+      <li><a href="#alt">If SMT Doesn't Suit You — Alternative Edges</a></li>
+      <li><a href="#journal">The Journal Template</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ 1. WHAT ============ -->
+  <section id="what">
+    <h2>1. What SMT Divergence Actually Is</h2>
+    <div class="card">
+      <p><strong>SMT (Smart Money Technique / Tool) Divergence</strong> is a concept popularized by ICT (Inner Circle Trader). It compares <strong>two highly correlated instruments</strong> at the <em>same exact time</em>. When one makes a new high/low and the other <strong>fails to confirm</strong>, that mismatch is the divergence — it suggests the move lacks institutional participation and is likely a <strong>liquidity grab</strong>.</p>
+
+      <h4>The simplest definition:</h4>
+      <p>👉 If <code>NIFTY makes a Higher High</code> but <code>BANKNIFTY makes a Lower High</code> at the same candle/time → <span class="pill bear">Bearish SMT</span> — likely reversal down.</p>
+      <p>👉 If <code>NIFTY makes a Lower Low</code> but <code>BANKNIFTY makes a Higher Low</code> at the same candle/time → <span class="pill bull">Bullish SMT</span> — likely reversal up.</p>
+    </div>
+
+    <div class="diagram">
+      <h4 style="margin-top:0">Visual: Bearish SMT Divergence</h4>
+      <svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="#ff5b6b"/>
+          </marker>
+        </defs>
+        <!-- left chart NIFTY -->
+        <rect x="10" y="10" width="340" height="260" fill="#0e1635" stroke="#2a3a6b"/>
+        <text x="20" y="32" fill="#fff" font-size="14" font-weight="bold">NIFTY (makes Higher High)</text>
+        <polyline points="30,200 70,160 100,180 140,120 180,150 220,90 260,120 300,70" fill="none" stroke="#22c98a" stroke-width="2.5"/>
+        <circle cx="220" cy="90" r="5" fill="#ffb454"/>
+        <circle cx="300" cy="70" r="5" fill="#ffb454"/>
+        <line x1="220" y1="90" x2="300" y2="70" stroke="#ffb454" stroke-dasharray="4 3"/>
+        <text x="225" y="80" fill="#ffb454" font-size="11">HH</text>
+
+        <!-- right chart BANKNIFTY -->
+        <rect x="370" y="10" width="340" height="260" fill="#0e1635" stroke="#2a3a6b"/>
+        <text x="380" y="32" fill="#fff" font-size="14" font-weight="bold">BANKNIFTY (makes Lower High)</text>
+        <polyline points="390,200 430,160 460,180 500,120 540,150 580,100 620,140 660,115" fill="none" stroke="#ff5b6b" stroke-width="2.5"/>
+        <circle cx="580" cy="100" r="5" fill="#ffb454"/>
+        <circle cx="660" cy="115" r="5" fill="#ffb454"/>
+        <line x1="580" y1="100" x2="660" y2="115" stroke="#ffb454" stroke-dasharray="4 3"/>
+        <text x="610" y="100" fill="#ffb454" font-size="11">LH</text>
+
+        <text x="240" y="255" fill="#ff5b6b" font-size="13" font-weight="bold">→ Divergence detected. Sell-side liquidity is being engineered above NIFTY's high.</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============ 2. WHY ============ -->
+  <section id="why">
+    <h2>2. Why It Works — The Institutional Logic</h2>
+    <div class="grid-2">
+      <div class="card pro">
+        <h3>The reasoning</h3>
+        <p>Two highly correlated instruments are driven by the <em>same macro flow</em> (interest rates, FII flows, liquidity). When one runs and the other doesn't follow, it means:</p>
+        <ul class="tight">
+          <li>Real buying pressure is <strong>not broad-based</strong>.</li>
+          <li>The "breakout" is fueled by retail stop-hunts, not institutional accumulation.</li>
+          <li>Smart money is likely <strong>on the other side</strong>, distributing/accumulating into the move.</li>
+        </ul>
+      </div>
+      <div class="card con">
+        <h3>Why it fails (sometimes)</h3>
+        <ul class="tight">
+          <li>Correlation breaks during <strong>sector-specific events</strong> (e.g., RBI policy hits BANKNIFTY but not NIFTY).</li>
+          <li>Index re-balancing or large weight changes desync the pair.</li>
+          <li>F&amp;O ban list reduces liquidity in one leg.</li>
+          <li>News-driven candles create false divergence.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. PAIRS ============ -->
+  <section id="pairs">
+    <h2>3. Correlated Pairs in Indian Markets</h2>
+    <p>SMT only works on truly correlated pairs. Here are the ones that work in India, ranked by reliability:</p>
+    <table>
+      <thead>
+        <tr><th>Pair</th><th>Correlation</th><th>Best For</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>NIFTY 50 vs SENSEX</strong></td><td class="bull">Very High (~0.97)</td><td>Intraday SMT, scalps</td><td>Cleanest pair. 80% overlap in constituents.</td></tr>
+        <tr><td><strong>NIFTY 50 vs BANKNIFTY</strong></td><td class="bull">High (~0.85)</td><td>Swing &amp; Intraday</td><td>The most popular SMT pair in India. Watch for divergence near big levels.</td></tr>
+        <tr><td><strong>NIFTY vs FINNIFTY</strong></td><td class="bull">High (~0.82)</td><td>Intraday on Tuesdays/expiries</td><td>FINNIFTY = Bank + NBFC + Insurance. Less liquid, use with care.</td></tr>
+        <tr><td><strong>BANKNIFTY vs FINNIFTY</strong></td><td class="bull">Very High (~0.92)</td><td>Banking-sector confirmations</td><td>Excellent for confirming BANKNIFTY moves.</td></tr>
+        <tr><td><strong>NIFTY vs MIDCAP NIFTY</strong></td><td>Medium (~0.70)</td><td>Trend-quality reads</td><td>If midcap diverges, broader market is weakening — early warning.</td></tr>
+        <tr><td><strong>NIFTY vs SGX/GIFT NIFTY</strong></td><td class="bull">Very High</td><td>Pre-market &amp; gap reads</td><td>Use to anticipate open behavior, not for live SMT during cash session.</td></tr>
+        <tr><td><strong>NIFTY vs USDINR (inverse)</strong></td><td class="bear">Inverse (~ -0.6)</td><td>Macro context</td><td>USDINR up = NIFTY pressure. Inverse SMT logic applies.</td></tr>
+        <tr><td><strong>NIFTY vs DXY (inverse)</strong></td><td class="bear">Inverse (~ -0.5)</td><td>Macro overlay</td><td>Use weekly/daily, not intraday.</td></tr>
+        <tr><td><strong>Stock vs its sector index</strong></td><td>Variable</td><td>Stock options trading</td><td>e.g., HDFCBANK vs BANKNIFTY. Useful for stock options.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <h3>Mentor's tip — verify correlation each week</h3>
+      <p>Correlations <strong>change with the macro regime</strong>. In high-VIX or news weeks, NIFTY/BANKNIFTY can de-couple. Spend 5 minutes on Sunday running a quick visual correlation check on the weekly chart before the week opens. If they're moving together cleanly → SMT will work. If they've been zig-zagging independently → don't trade SMT this week.</p>
+    </div>
+  </section>
+
+  <!-- ============ 4. TYPES ============ -->
+  <section id="types">
+    <h2>4. Types of SMT</h2>
+    <div class="grid-3">
+      <div class="card pro">
+        <h3>Bullish SMT (Reversal up)</h3>
+        <p>At a swing low:</p>
+        <ul class="tight">
+          <li>Asset A → makes a <strong>Lower Low</strong> (sweeps liquidity)</li>
+          <li>Asset B → makes a <strong>Higher Low</strong> (refuses to go lower)</li>
+        </ul>
+        <p><span class="pill bull">Action:</span> Look for long entries after market structure shift on lower TF.</p>
+      </div>
+      <div class="card con">
+        <h3>Bearish SMT (Reversal down)</h3>
+        <p>At a swing high:</p>
+        <ul class="tight">
+          <li>Asset A → makes a <strong>Higher High</strong> (sweeps liquidity)</li>
+          <li>Asset B → makes a <strong>Lower High</strong> (refuses to confirm)</li>
+        </ul>
+        <p><span class="pill bear">Action:</span> Look for short entries after MSS down.</p>
+      </div>
+      <div class="card secret">
+        <h3>Hidden / Continuation SMT</h3>
+        <p>In a strong trend, during a pullback:</p>
+        <ul class="tight">
+          <li>Asset A pulls back to make LL but Asset B holds HL → trend continuation up.</li>
+          <li>The opposite for downtrends.</li>
+        </ul>
+        <p><span class="pill warn">Note:</span> Most YouTubers ignore this — it's the highest-probability SMT type.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. IDENTIFY ============ -->
+  <section id="identify">
+    <h2>5. How to Identify SMT — Step by Step</h2>
+    <div class="card">
+      <h3>The 7-Step Identification Process</h3>
+      <ol>
+        <li><strong>Open both charts side-by-side</strong> at the same timeframe (5m, 15m, 1h, etc.). Use synced cursor if your platform supports it (TradingView does).</li>
+        <li><strong>Mark the Higher Time Frame (HTF) bias.</strong> Daily &amp; 1h structure first. SMT <em>against</em> HTF bias is low probability.</li>
+        <li><strong>Mark the obvious liquidity pools</strong> — Previous Day High/Low (PDH/PDL), session highs/lows, equal highs/lows.</li>
+        <li><strong>Wait for one asset to sweep liquidity</strong> (take out the high or low of a pool).</li>
+        <li><strong>At the same moment, check the correlated asset.</strong> Did it confirm the sweep, or did it fail to make the equivalent high/low?</li>
+        <li><strong>If divergence exists → mark it.</strong> Draw a trendline connecting the two highs (or lows) on the asset that diverged.</li>
+        <li><strong>Drop to a lower timeframe</strong> (1m–5m) and wait for a <strong>Market Structure Shift (MSS)</strong> + <strong>Fair Value Gap (FVG) / Order Block (OB)</strong> to enter.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ 6. FLOWCHART ============ -->
+  <section id="flow">
+    <h2>6. The Master Decision Flowchart</h2>
+    <p>Follow this exact tree for every potential SMT setup. If any step fails — <strong>do not trade</strong>. This single rule protects you from 80% of bad trades.</p>
+
+    <div class="flow">
+      <div class="node start">START — A potential SMT signal forms</div>
+      <div class="arrow"></div>
+
+      <div class="node decision">Is HTF bias (Daily &amp; 1h) aligned with the SMT direction?</div>
+      <div class="branch">
+        <div class="col">
+          <span class="label-edge">NO</span>
+          <div class="node reject">SKIP. Counter-trend SMT = low probability. Wait for next setup.</div>
+        </div>
+        <div class="col">
+          <span class="label-edge">YES</span>
+          <div class="arrow"></div>
+          <div class="node decision">Was a liquidity pool (PDH/PDL/session H-L/equal H-L) swept?</div>
+          <div class="branch">
+            <div class="col">
+              <span class="label-edge">NO</span>
+              <div class="node reject">SKIP. SMT without liquidity sweep = noise.</div>
+            </div>
+            <div class="col">
+              <span class="label-edge">YES</span>
+              <div class="arrow"></div>
+              <div class="node decision">Did correlated asset FAIL to confirm the sweep? (true SMT)</div>
+              <div class="branch">
+                <div class="col">
+                  <span class="label-edge">NO</span>
+                  <div class="node reject">SKIP. Both confirmed = real breakout, not SMT.</div>
+                </div>
+                <div class="col">
+                  <span class="label-edge">YES</span>
+                  <div class="arrow"></div>
+                  <div class="node decision">Is it inside a killzone? (9:15–10:15 AM or 1:30–3:00 PM IST)</div>
+                  <div class="branch">
+                    <div class="col">
+                      <span class="label-edge">NO</span>
+                      <div class="node reject">Lower probability — only take if A+ confluence. Else skip.</div>
+                    </div>
+                    <div class="col">
+                      <span class="label-edge">YES</span>
+                      <div class="arrow"></div>
+                      <div class="node decision">Did MSS occur on LTF (1m–5m) with displacement?</div>
+                      <div class="branch">
+                        <div class="col">
+                          <span class="label-edge">NO</span>
+                          <div class="node reject">WAIT for MSS. Don't pre-empt.</div>
+                        </div>
+                        <div class="col">
+                          <span class="label-edge">YES</span>
+                          <div class="arrow"></div>
+                          <div class="node decision">Is there an FVG / OB to enter from with R:R ≥ 1:2?</div>
+                          <div class="branch">
+                            <div class="col">
+                              <span class="label-edge">NO</span>
+                              <div class="node reject">SKIP. Bad R:R = bad trade even if direction right.</div>
+                            </div>
+                            <div class="col">
+                              <span class="label-edge">YES</span>
+                              <div class="arrow"></div>
+                              <div class="node end-bull">EXECUTE — A+ SMT trade. Risk &lt;= 1% capital.</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 7. A+ SETUP ============ -->
+  <section id="aplus">
+    <h2>7. A+ Setup Checklist (only trade these)</h2>
+    <div class="card pro">
+      <p>Print this checklist. Before every trade, every box must be ticked. If even one fails — <strong>skip</strong>. Most professional traders take only <strong>2–4 A+ trades per week</strong>.</p>
+      <ul class="checks">
+        <li><strong>HTF bias confirmed</strong> on Daily and 1H (price respecting structure / FVGs / OBs).</li>
+        <li><strong>Liquidity sweep occurred</strong> at a meaningful level (PDH, PDL, weekly H/L, session H/L, equal highs/lows).</li>
+        <li><strong>Clear SMT divergence</strong> visible at the same exact candle on both correlated charts.</li>
+        <li><strong>Inside a killzone</strong>: 9:15–10:15 AM IST (open hunt) or 1:30–3:00 PM IST (closing run).</li>
+        <li><strong>MSS on LTF</strong> with a strong displacement candle (engulfing the previous swing).</li>
+        <li><strong>FVG or Order Block</strong> created in the displacement, used as your entry zone.</li>
+        <li><strong>Risk:Reward ≥ 1:2</strong> (preferably 1:3) measured to the next opposing liquidity pool.</li>
+        <li><strong>No major news</strong> in the next 30 minutes (RBI, CPI, Fed, budget, results).</li>
+        <li><strong>Not expiry day</strong> (unless you specifically trade expiry — different rules).</li>
+        <li><strong>VIX is in a tradeable range</strong> (10–22 typically; above 25 = chaotic SMT).</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ 8. TRAP SETUPS ============ -->
+  <section id="trap">
+    <h2>8. Failure / Trap Setups — Avoid These</h2>
+    <div class="grid-2">
+      <div class="card con">
+        <h3>The 7 most common SMT traps</h3>
+        <ul class="crosses">
+          <li><strong>Midday SMT</strong> (12:00–1:30 PM IST) — low volume, prone to fakeouts.</li>
+          <li><strong>Expiry-day SMT on weekly options day</strong> — gamma + theta distort price; correlations break.</li>
+          <li><strong>SMT against HTF trend</strong> without a higher-timeframe sweep first.</li>
+          <li><strong>SMT during news</strong> — RBI, Fed, Budget, big results, geopolitical events.</li>
+          <li><strong>SMT on weak correlations</strong> (e.g., NIFTY vs MIDCAP during sector rotation).</li>
+          <li><strong>SMT without MSS</strong> — entering on the divergence alone, before structure confirms.</li>
+          <li><strong>Chasing</strong> the move instead of waiting for return to FVG/OB.</li>
+        </ul>
+      </div>
+      <div class="card warn-box">
+        <h3>The "looks-perfect-but-fails" trap</h3>
+        <p>This is what nobody warns you about. You'll see textbook SMT, take the trade, and lose. Why?</p>
+        <ul class="tight">
+          <li>It was a <strong>liquidity raid before the real move in the SAME direction</strong> (smart money grabbed stops then continued). The SMT was a feature of the run, not a reversal signal.</li>
+          <li>The fix: only take SMT-reversal trades <strong>at HTF points of interest</strong> (D/W FVGs, OBs, key swing levels). SMT in the middle of a range is statistical noise.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 9. ENTRY/SL/TARGET ============ -->
+  <section id="entry">
+    <h2>9. Entry, Stop-Loss &amp; Target Rules</h2>
+
+    <h3>9.1 Entry models (pick one and stick to it)</h3>
+    <table>
+      <thead><tr><th>Model</th><th>Trigger</th><th>Best For</th><th>Pros / Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>FVG Entry</strong></td>
+          <td>Limit order in 50% of the FVG created during MSS displacement</td>
+          <td>Most setups</td>
+          <td>+ Best R:R<br>− Sometimes price doesn't return</td>
+        </tr>
+        <tr>
+          <td><strong>OB Entry</strong></td>
+          <td>Limit at the order block (last opposing candle before displacement)</td>
+          <td>Strong trends</td>
+          <td>+ Good R:R<br>− Slower fill</td>
+        </tr>
+        <tr>
+          <td><strong>MSS Confirmation</strong></td>
+          <td>Market entry on close of MSS candle</td>
+          <td>Beginners / fast moves</td>
+          <td>+ Higher fill rate<br>− Worse R:R</td>
+        </tr>
+        <tr>
+          <td><strong>Break + Retest</strong></td>
+          <td>Wait for break of MSS level, retest, enter</td>
+          <td>Conservative</td>
+          <td>+ Highest win rate<br>− Misses fast moves</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>9.2 Stop-Loss placement</h3>
+    <div class="card">
+      <ul class="tight">
+        <li><strong>Bullish SMT:</strong> SL = a few ticks <em>below</em> the swept low (the wick that took out liquidity).</li>
+        <li><strong>Bearish SMT:</strong> SL = a few ticks <em>above</em> the swept high.</li>
+        <li><strong>Never</strong> use a fixed-point SL like "30 points NIFTY". The structure decides the SL, not your account size. If the SL is too wide for your size — <em>reduce the size</em>, don't move the SL.</li>
+        <li>Never move SL further away. Only move it <em>toward break-even</em> after price reaches 1R in profit.</li>
+      </ul>
+    </div>
+
+    <h3>9.3 Targets</h3>
+    <div class="card">
+      <ul class="tight">
+        <li><strong>TP1 (50% off):</strong> Nearest opposing liquidity pool (intraday session H/L).</li>
+        <li><strong>TP2 (30% off):</strong> Next major liquidity pool (PDH/PDL or weekly H/L).</li>
+        <li><strong>Runner (20%):</strong> HTF target (Daily/Weekly FVG or sweep). Trail with 15-min structure.</li>
+        <li>Always pre-define targets <strong>before</strong> entry. Hope is not a target.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ 10. INDIAN OPTIONS ============ -->
+  <section id="options">
+    <h2>10. Indian Options-Specific Execution</h2>
+    <div class="card warn-box">
+      <h3>Reality of options vs futures/spot</h3>
+      <p>SMT generates <em>direction</em>. Direction in options ≠ profit unless you handle these:</p>
+      <ul class="tight">
+        <li><strong>Theta decay</strong> — every minute, OTM options lose value. Don't hold OTM SMT scalps for hours.</li>
+        <li><strong>IV crush</strong> — after big moves or events, IV collapses; long premium dies even if direction is right.</li>
+        <li><strong>Liquidity</strong> — only trade weekly ATM ± 200 points strikes for NIFTY, ATM ± 500 for BANKNIFTY. Beyond that, slippage destroys edge.</li>
+        <li><strong>Lot size</strong> — NIFTY = 75, BANKNIFTY = 35 (verify current — exchange revises). One contract is real money.</li>
+      </ul>
+    </div>
+
+    <h3>Strike selection by trade type</h3>
+    <table>
+      <thead><tr><th>Trade Style</th><th>Recommended Strike</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Intraday scalp (5–30 min)</td><td>ATM or 1 strike ITM</td><td>Higher delta (~0.5–0.6), reacts well, low theta impact in short time</td></tr>
+        <tr><td>Half-day directional (2–4 hours)</td><td>1–2 strikes ITM</td><td>Delta ~0.65–0.75, moves like futures, theta-resistant</td></tr>
+        <tr><td>Overnight / next-day</td><td>2–3 strikes ITM (weekly) or futures</td><td>Theta becomes brutal overnight on ATM/OTM</td></tr>
+        <tr><td>Multi-day swing</td><td>Monthly ATM/ITM or futures</td><td>Weekly options decay too fast for swings</td></tr>
+        <tr><td>Lottery (do not do this)</td><td>Far OTM</td><td>Looks cheap, statistically loses 80%+ of the time</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Spread strategies that pair well with SMT</h3>
+    <ul class="tight">
+      <li><strong>Bull Call Spread / Bear Put Spread</strong> — caps both risk and reward; great for high-probability SMT trades where you want defined risk.</li>
+      <li><strong>Debit spreads on expiry day</strong> — better than naked options when theta is at peak.</li>
+      <li><strong>Credit spreads against SMT direction</strong> — when SMT signals reversal but you want time on your side.</li>
+    </ul>
+  </section>
+
+  <!-- ============ 11. SECRETS ============ -->
+  <section id="secrets">
+    <h2>11. What Nobody Tells You (the hidden truths)</h2>
+
+    <div class="card secret">
+      <h3>1. The "obvious" SMT is usually a trap</h3>
+      <p>If you can spot it instantly, so can 50,000 retail traders. Smart money knows this and uses it as a magnet to fade. The <strong>subtle, multi-timeframe SMT</strong> (e.g., 1H NIFTY makes HH but 4H BANKNIFTY hasn't confirmed) is far more reliable.</p>
+    </div>
+
+    <div class="card secret">
+      <h3>2. Time-of-day weighting</h3>
+      <p>SMT in the first 45 minutes of the session is the highest-probability window in Indian markets. SMT between 12:00–13:00 is the lowest. Track this in your journal — you'll see your win rate doubles in killzones.</p>
+    </div>
+
+    <div class="card secret">
+      <h3>3. Open Interest must agree</h3>
+      <p>If SMT is bearish but PCR is dropping fast and call OI is being unwound at the strike above current price → market actually wants to go up. <strong>OI tells you which side smart money is positioned on</strong>. SMT + OI agreement = A+. SMT against OI = avoid.</p>
+    </div>
+
+    <div class="card secret">
+      <h3>4. SMT works on the ASSET that is LAGGING</h3>
+      <p>The asset that <em>failed</em> to confirm is the one telling you the truth. If NIFTY made HH but BANKNIFTY didn't — short BANKNIFTY (or its options), not NIFTY. The lagging asset has more downside potential because it's already weaker.</p>
+    </div>
+
+    <div class="card secret">
+      <h3>5. Volume profile + SMT = institutional alignment</h3>
+      <p>Overlay a volume profile. If the SMT forms <strong>above a Low Volume Node (LVN)</strong> — price will travel fast through that gap. If it forms inside the High Volume Node (HVN) — expect chop and tight ranges. Most retail SMT traders miss this and get chopped up.</p>
+    </div>
+
+    <div class="card secret">
+      <h3>6. Expiry day inverts the rules</h3>
+      <p>On Tuesday (FINNIFTY), Wednesday (BANKNIFTY/SENSEX), and Thursday (NIFTY) expiries, max-pain mechanics dominate. SMT signals can reverse 3–4 times in a day as the market is "pinned" to a strike. <strong>Don't apply normal SMT logic on expiry day</strong>. Trade smaller or sit out.</p>
+    </div>
+
+    <div class="card secret">
+      <h3>7. Most "SMT" you see online is actually RSI divergence</h3>
+      <p>Real SMT is between two correlated <em>price charts</em>, not between price and an oscillator. Don't conflate them. RSI divergence has its own (lower) edge.</p>
+    </div>
+
+    <div class="card secret">
+      <h3>8. The first SMT after a sweep is the real one</h3>
+      <p>Multiple SMTs in the same direction = decreasing probability. The market only needs one good fake-out to reset. After that, the move continues. Don't keep counter-trading the same level.</p>
+    </div>
+
+    <div class="card secret">
+      <h3>9. Friday afternoons are different</h3>
+      <p>Position squaring, no overnight risk taking — SMT signals get "preempted". Reduce size or skip the last 90 minutes on Fridays.</p>
+    </div>
+
+    <div class="card secret">
+      <h3>10. Backtest before believing anyone — including this guide</h3>
+      <p>Take 100 historical SMT setups (NIFTY/BANKNIFTY 5m, last 6 months). Tag each with the A+ checklist. Calculate your hit rate and average R. <strong>Your number is the only number that matters</strong>. Don't believe a YouTuber's win rate. Don't believe mine.</p>
+    </div>
+  </section>
+
+  <!-- ============ 12. PSYCHOLOGY ============ -->
+  <section id="psych">
+    <h2>12. Psychology &amp; the Trader's Mind</h2>
+
+    <div class="callout">
+      <h3>The fundamental shift</h3>
+      <p>You said "psychology is the strategy". Almost. The correct version: <strong>"A profitable strategy survives only inside disciplined psychology."</strong> Without an edge, discipline doesn't help. Without discipline, an edge dies. You need <em>both</em>, in that order.</p>
+    </div>
+
+    <h3>The 8 mental laws of an SMT trader</h3>
+    <div class="grid-2">
+      <div class="card pro">
+        <h4>1. Process &gt; Outcome</h4>
+        <p>A losing A+ trade is a good trade. A winning C-grade trade is a bad trade. Reward yourself for following process, not for P&amp;L.</p>
+      </div>
+      <div class="card pro">
+        <h4>2. Patience as profession</h4>
+        <p>You are paid to wait. A+ setups don't appear every hour. If you trade out of boredom, you donate to the market.</p>
+      </div>
+      <div class="card pro">
+        <h4>3. Risk first, reward second</h4>
+        <p>Before every trade ask: "Where am I wrong?" If you can't answer in one sentence, don't take the trade.</p>
+      </div>
+      <div class="card pro">
+        <h4>4. One trade is one event in a series of 10,000</h4>
+        <p>Your edge plays out over hundreds of trades, not one. Stop reacting to single outcomes. Track expectancy.</p>
+      </div>
+      <div class="card pro">
+        <h4>5. Detach P&amp;L from self-worth</h4>
+        <p>You are not your equity curve. A drawdown is a data point, not a verdict on you as a person.</p>
+      </div>
+      <div class="card pro">
+        <h4>6. Fixed risk, variable size</h4>
+        <p>Always risk a fixed % (0.5–1%). Size adjusts based on stop distance, not based on your "feeling" about the trade.</p>
+      </div>
+      <div class="card pro">
+        <h4>7. No revenge trading. Ever.</h4>
+        <p>After a loss → 15-min screen break, walk, breathe. After 2 losses → done for the day. This single rule preserves more capital than any strategy.</p>
+      </div>
+      <div class="card pro">
+        <h4>8. Journal or don't trade</h4>
+        <p>If you don't journal, you don't learn — you just repeat. Journaling is non-negotiable.</p>
+      </div>
+    </div>
+
+    <h3>Pre-market &amp; pre-trade rituals</h3>
+    <div class="card">
+      <ol>
+        <li><strong>9:00 AM</strong> — Review SGX/GIFT NIFTY, US close, key Asia moves. Mark expected gap.</li>
+        <li><strong>9:05 AM</strong> — Mark PDH, PDL, key levels on both NIFTY &amp; BANKNIFTY 15m charts.</li>
+        <li><strong>9:10 AM</strong> — Define HTF bias: bullish, bearish, or neutral. Write it down.</li>
+        <li><strong>9:15 AM</strong> — Watch the open. Don't trade the first 5 minutes unless A+ setup.</li>
+        <li><strong>Before every entry</strong> — read the A+ checklist out loud.</li>
+        <li><strong>3:30 PM</strong> — Journal every trade, taken or skipped, with screenshots.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ 13. RISK MATH ============ -->
+  <section id="risk">
+    <h2>13. Risk Management Math (the part most traders ignore)</h2>
+
+    <div class="card">
+      <h3>The 1% Rule</h3>
+      <p>Maximum risk per trade = <strong>1% of account capital</strong> (use 0.5% while learning).</p>
+      <p>Example: ₹2,00,000 account → max loss per trade = ₹2,000.</p>
+      <p>If your SL is 30 NIFTY points, position size = ₹2,000 / (30 × 75) = <strong>0.88 lots → trade 0 lots, you're undersized</strong> → wait for tighter setup OR build account.</p>
+      <p>This is the math nobody wants to do. If you can't risk 1% and still trade 1 lot, your account is too small for that instrument. <strong>Trade smaller instruments or paper-trade</strong>.</p>
+    </div>
+
+    <h3>Daily &amp; weekly circuit breakers</h3>
+    <ul class="tight">
+      <li><strong>2 losses</strong> in a day → stop trading for the day.</li>
+      <li><strong>3% account drawdown</strong> in a week → stop, review, half size next week.</li>
+      <li><strong>10% account drawdown total</strong> → stop trading. Audit strategy. You may need to retest your edge.</li>
+    </ul>
+
+    <h3>Expectancy formula — your real metric</h3>
+    <div class="card">
+      <p><code>Expectancy = (Win% × Avg Win) − (Loss% × Avg Loss)</code></p>
+      <p>Example: 45% win, avg win 2R, avg loss 1R → 0.45×2 − 0.55×1 = 0.35R per trade. Over 100 trades = +35R. THIS is what an edge looks like.</p>
+      <p>If your expectancy is negative after 50+ trades — stop trading real money. Backtest, refine, paper-trade until expectancy is positive.</p>
+    </div>
+  </section>
+
+  <!-- ============ 14. 15-DAY ROADMAP ============ -->
+  <section id="15day">
+    <h2>14. 15-Day Realistic Learning Roadmap</h2>
+    <div class="callout">
+      <h3>Reality check</h3>
+      <p>15 days will get you from beginner to "informed beginner who can read charts properly." It will <strong>not</strong> make you a profitable pro — that requires 6–24 months of journaled screen time. Anyone who promises otherwise is selling you something. Use this roadmap to build the foundation; commit to the longer journey.</p>
+    </div>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="day">Day 1–2</div>
+        <h4>Market structure fundamentals</h4>
+        <p>Learn HH, HL, LH, LL, BOS (Break of Structure), MSS (Market Structure Shift). Mark 50 historical examples on NIFTY 15m chart. <strong>No trading yet.</strong></p>
+      </div>
+      <div class="tl-item">
+        <div class="day">Day 3–4</div>
+        <h4>Liquidity concepts</h4>
+        <p>Understand buy-side &amp; sell-side liquidity, equal highs/lows, PDH/PDL, session H/L. Mark liquidity sweeps on 50 historical examples. Notice patterns.</p>
+      </div>
+      <div class="tl-item">
+        <div class="day">Day 5</div>
+        <h4>Fair Value Gaps &amp; Order Blocks</h4>
+        <p>Learn to identify FVGs, IFVGs, and OBs. Mark 50 examples. Observe how price returns to them.</p>
+      </div>
+      <div class="tl-item">
+        <div class="day">Day 6–7</div>
+        <h4>Introduce SMT divergence</h4>
+        <p>Open NIFTY + BANKNIFTY side by side. Find 30 historical SMT examples. Tag each as bullish/bearish/hidden. <strong>Observation only, no trading.</strong></p>
+      </div>
+      <div class="tl-item">
+        <div class="day">Day 8–9</div>
+        <h4>Combine: SMT + sweep + MSS + FVG</h4>
+        <p>Find 20 setups where ALL four align historically. Calculate hit rate if you had entered with proper SL/TP. This is your <em>backtested expectancy</em>.</p>
+      </div>
+      <div class="tl-item">
+        <div class="day">Day 10–11</div>
+        <h4>Paper trading — live market</h4>
+        <p>No real money. Trade live SMT setups on TradingView paper account or Sensibull paper trading. Take 5–10 trades. Journal every one.</p>
+      </div>
+      <div class="tl-item">
+        <div class="day">Day 12–13</div>
+        <h4>Options mechanics</h4>
+        <p>Study delta, theta, vega, IV crush. Practice strike selection. Paper-trade options based on SMT signals. Observe how option price reacts vs spot.</p>
+      </div>
+      <div class="tl-item">
+        <div class="day">Day 14</div>
+        <h4>Risk and psychology drills</h4>
+        <p>Define your daily max loss, max trades, kill switches. Write your trading plan in one page. Read it every morning.</p>
+      </div>
+      <div class="tl-item">
+        <div class="day">Day 15</div>
+        <h4>Review &amp; commit to the long path</h4>
+        <p>Audit your 15-day journal. What worked? What didn't? Set a 90-day goal: "Take 100 paper trades, achieve positive expectancy, then risk ₹500 per trade."</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 15. ALTERNATIVES ============ -->
+  <section id="alt">
+    <h2>15. If SMT Doesn't Suit You — Other Edges with Real Track Records</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>1. ORB (Opening Range Breakout)</h3>
+        <p>Define the 9:15–9:30 range. Trade breakouts with volume confirmation. Simple, mechanical, well-documented edge in Indian markets — works because of how MIS positions stack at open.</p>
+      </div>
+      <div class="card">
+        <h3>2. VWAP Mean-Reversion / Trend</h3>
+        <p>Use VWAP as a dynamic level. In trending sessions, fade pullbacks to VWAP. In ranging sessions, fade extremes back to VWAP. Excellent for index options.</p>
+      </div>
+      <div class="card">
+        <h3>3. Iron Condor / Iron Fly on low-VIX days</h3>
+        <p>Non-directional theta strategy. Enter when VIX &lt; 13 and ATR is contracting. Manage at 25–50% of max profit. Defined-risk, scalable.</p>
+      </div>
+      <div class="card">
+        <h3>4. Expiry-day directional with futures</h3>
+        <p>Use futures (or deep ITM options) on expiry days for clean directional plays. Avoids theta and IV crush.</p>
+      </div>
+      <div class="card">
+        <h3>5. Supply &amp; Demand zones (Sam Seiden style)</h3>
+        <p>Identify imbalanced zones. Trade only first touches. Simpler than ICT, well-suited for swing traders on stocks.</p>
+      </div>
+      <div class="card">
+        <h3>6. Volume Profile + Market Profile</h3>
+        <p>Trade Value Area High/Low rejections, Single Prints, Initial Balance breakouts. Used by professional intraday desks.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <h3>Mentor's pick for an Indian beginner</h3>
+      <p>If you want one strategy to start with: <strong>ORB + VWAP context, on NIFTY/BANKNIFTY ATM options, with strict 1% risk</strong>. It's mechanical, has clear rules, well-suited for Indian session structure, and doesn't require the heavy concept stack of SMT/ICT. Once you're consistent there (3–6 months), layer SMT on top as a confluence filter.</p>
+    </div>
+  </section>
+
+  <!-- ============ 16. JOURNAL ============ -->
+  <section id="journal">
+    <h2>16. The Journal Template (use every single day)</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Field</th><th>What to record</th></tr></thead>
+        <tbody>
+          <tr><td>Date / Time</td><td>Entry &amp; exit timestamps</td></tr>
+          <tr><td>Instrument</td><td>NIFTY / BANKNIFTY + strike + CE/PE</td></tr>
+          <tr><td>HTF Bias</td><td>Bullish / Bearish / Neutral (and why)</td></tr>
+          <tr><td>Setup</td><td>SMT type (bullish/bearish/hidden) + correlated pair used</td></tr>
+          <tr><td>A+ Checklist</td><td>Tick all 10 boxes (or note which failed)</td></tr>
+          <tr><td>Entry / SL / TP</td><td>Exact prices &amp; reason</td></tr>
+          <tr><td>Risk / R:R</td><td>₹ risked + planned R:R</td></tr>
+          <tr><td>Result</td><td>+R / −R, in R units (not just rupees)</td></tr>
+          <tr><td>Screenshot</td><td>Before-entry &amp; after-exit (mandatory)</td></tr>
+          <tr><td>Emotion before</td><td>Calm / FOMO / Revenge / Boredom</td></tr>
+          <tr><td>Emotion during</td><td>Patient / Anxious / Hopeful</td></tr>
+          <tr><td>Mistake</td><td>What did I do wrong (even on winners)?</td></tr>
+          <tr><td>Lesson</td><td>One sentence learning</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:10px"><strong>Weekly review (every Sunday, 30 min):</strong> count A+ vs B trades, note pattern in losers, identify one improvement focus for the next week.</p>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer>
+    <p>📘 SMT Divergence Mastery — Indian Options Edition.<br>
+    Educational content only. Not investment advice. Markets carry the risk of total capital loss.<br>
+    Build the edge, journal the data, respect the process. Print this guide and revisit it weekly.</p>
+  </footer>
+
+</div>
+</body>
+</html>
