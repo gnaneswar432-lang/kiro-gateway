@@ -206,29 +206,23 @@ if buySignal or sellSignal
     signaledToday := true
 
 // ----------------------- SL / TARGET LEVELS --------------------------
-// Initialise with concrete defaults to satisfy Pine v6's stricter type
-// inference (avoids "Cannot assign na to const ..." compile errors).
+// Pine v6 NOTE: booleans can no longer hold `na`, and `var X = na`
+// is inferred as a const type. So we initialise with concrete defaults.
 var float entryPrice = 0.0
 var float slPrice    = 0.0
 var float tpPrice    = 0.0
-var int   entryBar   = 0
-var bool  isLong     = false
 
 if buySignal
     entryPrice := close
     slPrice    := low - slBufferTicks
     risk        = entryPrice - slPrice
     tpPrice    := entryPrice + risk * rrRatio
-    entryBar   := bar_index
-    isLong     := true
 
 if sellSignal
     entryPrice := close
     slPrice    := high + slBufferTicks
     risk        = slPrice - entryPrice
     tpPrice    := entryPrice - risk * rrRatio
-    entryBar   := bar_index
-    isLong     := false
 
 // --------------------------- PLOTTING --------------------------------
 plotshape(buySignal,  title = "BUY",  style = shape.triangleup,
