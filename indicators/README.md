@@ -1,6 +1,7 @@
-# BB(20, 1.5) + Candlestick — Pine Script Indicator
+# BB(20, 1.5) + Candlestick — Pine Script v6 Indicator
 
-Trading indicator built for the **Nifty 50 — 100 Days Trading Challenge** strategy:
+Trading indicator built for the **Nifty 50 — 100 Days Trading Challenge** strategy.
+Written in **Pine Script v6** (TradingView's latest, released 2025).
 
 > *"Bollinger Band (20, 1.5) + Candlestick"* — One trade a day, 1:2 R:R, 5-minute Nifty Futures, intraday only.
 
