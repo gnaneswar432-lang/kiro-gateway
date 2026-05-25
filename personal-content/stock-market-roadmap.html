@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gnanomics — Stock Market Learning Roadmap (Beginner to Pro)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  /* ================================
+     BRAND PALETTE
+     Cream  #F4F1EA
+     Black  #0F0F0F
+     Green  #00C896
+     Gold   #FFD700
+     ================================ */
+
+  *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #F4F1EA;
+    --cream-dark: #EAE5D6;
+    --black: #0F0F0F;
+    --gray: #6B6B6B;
+    --green: #00C896;
+    --gold: #FFD700;
+    --red: #E63946;
+    --white: #FFFFFF;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--cream);
+    color: var(--black);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, .display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; }
+  .num { font-family: 'JetBrains Mono', monospace; }
+
+  /* ===================== HERO ===================== */
+  .hero {
+    background: var(--black);
+    color: var(--cream);
+    padding: 80px 24px 100px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(0,200,150,0.15), transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(255,215,0,0.12), transparent 40%);
+    pointer-events: none;
+  }
+  .hero .brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-size: clamp(48px, 8vw, 96px);
+    line-height: 0.95;
+    margin-bottom: 24px;
+  }
+  .hero h1 .accent { color: var(--green); }
+  .hero p.subtitle {
+    font-size: clamp(16px, 2vw, 20px);
+    max-width: 720px;
+    margin: 0 auto 40px;
+    color: #C9C5BC;
+  }
+  .hero .stats {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 40px;
+    margin-top: 40px;
+  }
+  .hero .stat {
+    text-align: center;
+  }
+  .hero .stat .num-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .hero .stat .label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #999;
+    margin-top: 8px;
+  }
+  .hero .progress-wrap {
+    margin: 48px auto 0;
+    max-width: 600px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 100px;
+    overflow: hidden;
+    height: 14px;
+    position: relative;
+  }
+  .hero .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--gold));
+    width: 0%;
+    transition: width 0.6s ease;
+  }
+  .hero .progress-label {
+    margin-top: 12px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: #C9C5BC;
+  }
+
+  /* ===================== HOW TO USE ===================== */
+  .howto {
+    background: var(--cream-dark);
+    padding: 60px 24px;
+  }
+  .howto-inner { max-width: 1100px; margin: 0 auto; }
+  .howto h2 {
+    font-size: 42px;
+    margin-bottom: 32px;
+    text-align: center;
+  }
+  .howto h2 .accent { color: var(--green); }
+  .howto-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .howto-card {
+    background: var(--cream);
+    border: 2px solid var(--black);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 4px 4px 0 var(--black);
+  }
+  .howto-card .step {
+    font-family: 'Bebas Neue', sans-serif;
+    color: var(--gold);
+    font-size: 32px;
+    line-height: 1;
+  }
+  .howto-card h3 {
+    font-size: 22px;
+    margin: 8px 0;
+  }
+  .howto-card p { font-size: 14px; color: var(--gray); }
+
+  /* ===================== ROADMAP ===================== */
+  .roadmap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 80px 24px;
+  }
+  .roadmap-header {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+  .roadmap-header h2 {
+    font-size: clamp(36px, 5vw, 64px);
+  }
+  .roadmap-header h2 .accent { color: var(--green); }
+  .roadmap-header p { color: var(--gray); font-size: 16px; max-width: 600px; margin: 12px auto 0;}
+
+  /* ===== Filter tabs ===== */
+  .filters {
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 40px;
+  }
+  .filter-btn {
+    background: transparent;
+    border: 2px solid var(--black);
+    padding: 8px 18px;
+    border-radius: 100px;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover { background: var(--black); color: var(--cream); }
+  .filter-btn.active { background: var(--green); border-color: var(--green); color: var(--black); }
+
+  /* ===== Level section ===== */
+  .level {
+    margin-bottom: 48px;
+    background: var(--white);
+    border: 3px solid var(--black);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 8px 8px 0 var(--black);
+  }
+  .level-header {
+    padding: 32px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: linear-gradient(90deg, var(--cream), var(--cream-dark));
+    transition: background 0.2s;
+  }
+  .level-header:hover { background: linear-gradient(90deg, var(--cream-dark), var(--cream)); }
+  .level-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    line-height: 0.85;
+    color: var(--gold);
+    -webkit-text-stroke: 2px var(--black);
+    flex-shrink: 0;
+    min-width: 80px;
+  }
+  .level-meta { flex: 1; }
+  .level-meta .badge {
+    display: inline-block;
+    background: var(--black);
+    color: var(--cream);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .level-meta h3 {
+    font-size: clamp(24px, 3vw, 36px);
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+  .level-meta p {
+    color: var(--gray);
+    font-size: 14px;
+  }
+  .level-stats {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .level-stats .count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    color: var(--green);
+    line-height: 1;
+  }
+  .level-stats .count-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gray);
+  }
+  .level-stats .progress-mini {
+    width: 100px;
+    height: 6px;
+    background: #eee;
+    border-radius: 3px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .level-stats .progress-mini-bar {
+    height: 100%;
+    background: var(--green);
+    width: 0%;
+    transition: width 0.4s;
+  }
+  .toggle-icon {
+    font-size: 24px;
+    transition: transform 0.3s;
+    flex-shrink: 0;
+  }
+  .level.collapsed .toggle-icon { transform: rotate(-90deg); }
+
+  .level-body {
+    padding: 0 32px 32px;
+    max-height: 5000px;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.4s ease;
+  }
+  .level.collapsed .level-body {
+    max-height: 0;
+    padding: 0 32px;
+  }
+
+  /* ===== Topic items ===== */
+  .topic-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .topic {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--cream);
+    border: 1.5px solid var(--black);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .topic:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 3px 3px 0 var(--black);
+  }
+  .topic.done {
+    background: rgba(0,200,150,0.12);
+    border-color: var(--green);
+  }
+  .topic.done .topic-text { text-decoration: line-through; opacity: 0.55; }
+  .topic input[type="checkbox"] {
+    appearance: none;
+    width: 22px; height: 22px;
+    border: 2px solid var(--black);
+    border-radius: 4px;
+    background: var(--white);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+    position: relative;
+    transition: all 0.15s;
+  }
+  .topic input[type="checkbox"]:checked {
+    background: var(--green);
+    border-color: var(--green);
+  }
+  .topic input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--black);
+    font-weight: bold;
+    font-size: 14px;
+  }
+  .topic-text {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .topic-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--gray);
+    font-weight: 600;
+    margin-right: 6px;
+  }
+
+  /* ===================== POSTING SCHEDULE ===================== */
+  .schedule {
+    background: var(--black);
+    color: var(--cream);
+    padding: 80px 24px;
+  }
+  .schedule-inner { max-width: 1100px; margin: 0 auto; }
+  .schedule h2 {
+    font-size: clamp(36px, 5vw, 56px);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .schedule h2 .accent { color: var(--gold); }
+  .schedule .lead {
+    text-align: center; color: #C9C5BC; max-width: 600px; margin: 0 auto 48px;
+  }
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 768px) {
+    .schedule-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .day-card {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 20px 12px;
+    text-align: center;
+  }
+  .day-card .day {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+  .day-card .type {
+    font-size: 13px;
+    margin-top: 8px;
+    color: var(--cream);
+    font-weight: 600;
+  }
+  .day-card .desc {
+    font-size: 11px;
+    color: #999;
+    margin-top: 6px;
+  }
+
+  /* ===================== TIPS ===================== */
+  .tips {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 80px 24px;
+  }
+  .tips h2 {
+    font-size: clamp(36px, 5vw, 56px);
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .tips h2 .accent { color: var(--green); }
+  .tips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .tip-card {
+    background: var(--white);
+    border: 2px solid var(--black);
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 4px 4px 0 var(--black);
+  }
+  .tip-card .icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+  .tip-card h3 { font-size: 22px; margin-bottom: 8px; }
+  .tip-card p { font-size: 14px; color: var(--gray); }
+
+  /* ===================== FOOTER ===================== */
+  footer {
+    background: var(--black);
+    color: var(--cream);
+    text-align: center;
+    padding: 60px 24px 40px;
+  }
+  footer .signature {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    color: var(--gold);
+    letter-spacing: 4px;
+  }
+  footer .tagline {
+    font-size: 14px;
+    color: #999;
+    margin-top: 8px;
+  }
+  footer .disclaimer {
+    margin-top: 24px;
+    font-size: 12px;
+    color: #777;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ===================== ACTIONS BAR ===================== */
+  .actions-bar {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 100;
+  }
+  .action-btn {
+    background: var(--black);
+    color: var(--cream);
+    border: 2px solid var(--gold);
+    padding: 12px 16px;
+    border-radius: 100px;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    box-shadow: 4px 4px 0 var(--gold);
+    transition: all 0.15s;
+  }
+  .action-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--gold);
+  }
+  .action-btn.danger { border-color: var(--red); box-shadow: 4px 4px 0 var(--red); }
+  .action-btn.danger:hover { box-shadow: 6px 6px 0 var(--red); }
+
+  /* ===================== PRINT ===================== */
+  @media print {
+    .actions-bar, .filters, .toggle-icon { display: none !important; }
+    .level { box-shadow: none; page-break-inside: avoid; }
+    .level.collapsed .level-body { max-height: none; padding: 0 32px 32px; }
+    .hero { padding: 30px 24px; }
+    body { background: white; }
+  }
+
+  @media (max-width: 600px) {
+    .level-header { flex-wrap: wrap; padding: 20px; }
+    .level-num { font-size: 56px; min-width: 60px; }
+    .level-stats { width: 100%; text-align: left; margin-top: 12px; }
+    .level-body { padding: 0 20px 24px; }
+    .level.collapsed .level-body { padding: 0 20px; }
+    .topic-list { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================ HERO ================ -->
+<section class="hero">
+  <div class="brand">⚡ GNANOMICS ⚡</div>
+  <h1>STOCK MARKET<br/>FROM <span class="accent">ZERO</span> TO <span class="accent">PRO</span></h1>
+  <p class="subtitle">A complete 365-day learning &amp; content roadmap. One topic per day, one Instagram post per topic. By the end of the year, you (and your audience) will know more about markets than 99% of investors.</p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="num-big">10</div>
+      <div class="label">Levels</div>
+    </div>
+    <div class="stat">
+      <div class="num-big" id="totalCount">365</div>
+      <div class="label">Topics</div>
+    </div>
+    <div class="stat">
+      <div class="num-big">365</div>
+      <div class="label">Days of Content</div>
+    </div>
+    <div class="stat">
+      <div class="num-big" id="completedCount">0</div>
+      <div class="label">Completed</div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+  <div class="progress-label" id="progressLabel">0% complete · let's build your empire 📈</div>
+</section>
+
+<!-- ================ HOW TO USE ================ -->
+<section class="howto">
+  <div class="howto-inner">
+    <h2>HOW TO <span class="accent">USE THIS</span></h2>
+    <div class="howto-grid">
+      <div class="howto-card">
+        <div class="step">01</div>
+        <h3>Pick a Topic</h3>
+        <p>Start at Level 1, Topic 1. Don't skip ahead — foundations matter.</p>
+      </div>
+      <div class="howto-card">
+        <div class="step">02</div>
+        <h3>Research It</h3>
+        <p>Spend 30–60 mins learning. Use Investopedia, Zerodha Varsity, NSE/SEBI sites.</p>
+      </div>
+      <div class="howto-card">
+        <div class="step">03</div>
+        <h3>Make a Carousel</h3>
+        <p>7–10 slides. Hook → Concept → Example → Takeaway → CTA.</p>
+      </div>
+      <div class="howto-card">
+        <div class="step">04</div>
+        <h3>Post &amp; Check Off</h3>
+        <p>Publish, then click the checkbox here. Your progress is auto-saved.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================ ROADMAP ================ -->
+<section class="roadmap">
+  <div class="roadmap-header">
+    <h2>THE <span class="accent">ROADMAP</span></h2>
+    <p>10 levels · 365 topics · One full year of zero-jargon content</p>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">Show All</button>
+    <button class="filter-btn" data-filter="todo">To Do</button>
+    <button class="filter-btn" data-filter="done">Completed</button>
+    <button class="filter-btn" data-filter="expand">Expand All</button>
+    <button class="filter-btn" data-filter="collapse">Collapse All</button>
+  </div>
+
+  <div id="levelsContainer"></div>
+</section>
+
+<!-- ================ POSTING SCHEDULE ================ -->
+<section class="schedule">
+  <div class="schedule-inner">
+    <h2>WEEKLY <span class="accent">POSTING SCHEDULE</span></h2>
+    <p class="lead">A balanced week that mixes education, news, stories, and engagement. Repeat every week — modify as you grow.</p>
+    <div class="schedule-grid">
+      <div class="day-card">
+        <div class="day">MON</div>
+        <div class="type">📚 Concept</div>
+        <div class="desc">New roadmap topic</div>
+      </div>
+      <div class="day-card">
+        <div class="day">TUE</div>
+        <div class="type">📰 News Recap</div>
+        <div class="desc">Last week's market moves</div>
+      </div>
+      <div class="day-card">
+        <div class="day">WED</div>
+        <div class="type">⚖️ Compare</div>
+        <div class="desc">A vs B carousel</div>
+      </div>
+      <div class="day-card">
+        <div class="day">THU</div>
+        <div class="type">📚 Concept</div>
+        <div class="desc">New roadmap topic</div>
+      </div>
+      <div class="day-card">
+        <div class="day">FRI</div>
+        <div class="type">💡 Myth Buster</div>
+        <div class="desc">Common misconception</div>
+      </div>
+      <div class="day-card">
+        <div class="day">SAT</div>
+        <div class="type">📖 Story</div>
+        <div class="desc">Case study / company</div>
+      </div>
+      <div class="day-card">
+        <div class="day">SUN</div>
+        <div class="type">✨ Recap</div>
+        <div class="desc">Week summary + quote</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================ TIPS ================ -->
+<section class="tips">
+  <h2>RULES OF THE <span class="accent">GAME</span></h2>
+  <div class="tips-grid">
+    <div class="tip-card">
+      <div class="icon">⚖️</div>
+      <h3>Always Disclaim</h3>
+      <p>"Educational only. Not financial advice. Not a SEBI registered advisor." On every post. Non-negotiable.</p>
+    </div>
+    <div class="tip-card">
+      <div class="icon">🎯</div>
+      <h3>Don't Recommend Stocks</h3>
+      <p>Teach concepts, not tips. SEBI banned stock recommendations from unregistered creators. Stay safe.</p>
+    </div>
+    <div class="tip-card">
+      <div class="icon">📊</div>
+      <h3>Use Real Examples</h3>
+      <p>Use real Indian companies (Reliance, TCS, Infosys) for examples — but for education, never as buy/sell calls.</p>
+    </div>
+    <div class="tip-card">
+      <div class="icon">🔁</div>
+      <h3>Consistency &gt; Perfection</h3>
+      <p>An OK post posted today beats a perfect post posted next week. Ship daily.</p>
+    </div>
+    <div class="tip-card">
+      <div class="icon">💾</div>
+      <h3>Build for Saves</h3>
+      <p>Cheat sheets, glossaries, checklists get saved. Saves boost reach more than likes.</p>
+    </div>
+    <div class="tip-card">
+      <div class="icon">🪞</div>
+      <h3>Stay Authentic</h3>
+      <p>You're a learner, not a guru. Share that journey. People follow honesty in 2026.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================ FOOTER ================ -->
+<footer>
+  <div class="signature">@GNANOMICS</div>
+  <div class="tagline">FINANCE, SIMPLIFIED · ONE POST AT A TIME</div>
+  <div class="disclaimer">
+    This roadmap is for educational and content-planning purposes only. Nothing in this document constitutes financial, investment, legal, or tax advice. Verify all data with official sources (SEBI, NSE, BSE, RBI) before publishing. Comply with all applicable regulations including SEBI's finfluencer guidelines.
+  </div>
+</footer>
+
+<!-- ================ FLOATING ACTIONS ================ -->
+<div class="actions-bar">
+  <button class="action-btn" onclick="window.print()">🖨️ Print / PDF</button>
+  <button class="action-btn" onclick="exportProgress()">💾 Export</button>
+  <button class="action-btn danger" onclick="resetProgress()">🔄 Reset</button>
+</div>
+
+<script>
+/* ============================================================
+   THE FULL CURRICULUM — 10 LEVELS, 365 TOPICS
+   ============================================================ */
+const ROADMAP = [
+  {
+    level: 1,
+    badge: 'Absolute Beginner',
+    title: 'Money, Markets & The Big Picture',
+    desc: 'The vocabulary, players, and "why does any of this exist?" — start here, even if you know nothing.',
+    topics: [
+      "What is money? A 60-second history",
+      "Why we save vs why we invest",
+      "Inflation explained — why ₹100 today ≠ ₹100 in 10 years",
+      "What is the stock market (in plain English)",
+      "Why companies sell shares to the public",
+      "What is a 'share' / 'stock' really?",
+      "Stock exchanges — what are NSE & BSE?",
+      "Difference between NSE and BSE",
+      "What is Sensex? What is Nifty 50?",
+      "Who can invest in the stock market in India?",
+      "What is a Demat account?",
+      "What is a Trading account?",
+      "Demat vs Trading account — explained",
+      "What is a stock broker?",
+      "Discount broker vs Full-service broker",
+      "Top brokers in India compared (Zerodha, Groww, Upstox, etc.)",
+      "How to open a Demat account (step-by-step)",
+      "What are KYC & PAN requirements?",
+      "Bull market vs Bear market",
+      "Primary market vs Secondary market",
+      "What are 'listed' vs 'unlisted' companies?",
+      "Stock price — who decides it?",
+      "How a buy/sell order actually works",
+      "Trading hours & market timings (India)",
+      "Pre-open session & after-market orders",
+      "Settlement cycle — what is T+1?",
+      "Public holidays & non-trading days",
+      "What is SEBI and what does it do?",
+      "Investor protection — SEBI's role",
+      "Common myths about the stock market",
+      "Risk vs Reward — the core principle",
+      "5 things to check before your first investment",
+      "The 'first ₹500' challenge — how to start"
+    ]
+  },
+  {
+    level: 2,
+    badge: 'Beginner +',
+    title: 'How Stocks Actually Work',
+    desc: 'Stock types, sectors, order mechanics, corporate actions — the "operating system" of the market.',
+    topics: [
+      "Reading a stock price quote",
+      "What is bid, ask, and spread?",
+      "Volume — why it matters",
+      "Market order vs Limit order",
+      "Stop-loss order explained",
+      "Stop-loss-market vs Stop-loss-limit",
+      "What is a 'GTT' (Good Till Triggered) order?",
+      "What is intraday vs delivery?",
+      "MIS, CNC, NRML — order types decoded",
+      "Large cap, Mid cap, Small cap explained",
+      "Micro cap & Nano cap — the wild side",
+      "What is a 'penny stock' (and why to be careful)",
+      "Stock sectors & how they're classified",
+      "Cyclical vs Defensive sectors",
+      "Growth stocks vs Value stocks",
+      "What is an IPO?",
+      "How IPOs work step-by-step",
+      "How to apply for an IPO",
+      "What is the 'grey market' before listing?",
+      "Listing day — what happens?",
+      "What is a stock split?",
+      "What is a bonus issue?",
+      "What is a rights issue?",
+      "What is a buyback?",
+      "What is a dividend?",
+      "Dividend yield explained",
+      "Ex-date, record date, payment date",
+      "Circuit breakers — upper & lower",
+      "What is delisting?",
+      "What is a 'corporate action'?",
+      "Reading the company announcement page",
+      "Stock symbols & ISIN explained",
+      "How taxes work on stock gains (STCG vs LTCG)",
+      "STT, brokerage, GST — the hidden costs",
+      "Building your first stock watchlist",
+      "Top 10 free tools every beginner should use"
+    ]
+  },
+  {
+    level: 3,
+    badge: 'Intermediate',
+    title: 'Fundamental Analysis 101',
+    desc: 'Learn to look at a company like an investor — not a gambler. Numbers, ratios, statements.',
+    topics: [
+      "What is fundamental analysis?",
+      "Top-down vs Bottom-up analysis",
+      "How to read a company's annual report",
+      "The 3 financial statements — overview",
+      "The Income Statement (P&L) explained",
+      "Revenue vs Profit — different things!",
+      "Operating profit vs Net profit",
+      "EBITDA explained simply",
+      "The Balance Sheet — assets & liabilities",
+      "Current assets vs Non-current assets",
+      "Debt — short-term vs long-term",
+      "Equity, reserves & shareholders' funds",
+      "The Cash Flow Statement — the truth-teller",
+      "Operating, Investing, Financing cash flows",
+      "Why cash flow > profit for many investors",
+      "P/E Ratio — what it really means",
+      "P/B Ratio (Price-to-Book)",
+      "P/S Ratio (Price-to-Sales)",
+      "EPS — Earnings Per Share",
+      "Book Value per share",
+      "Dividend Payout Ratio",
+      "Dividend Yield — when it's a trap",
+      "ROE — Return on Equity",
+      "ROCE — Return on Capital Employed",
+      "ROA — Return on Assets",
+      "Debt-to-Equity Ratio",
+      "Interest Coverage Ratio",
+      "Current Ratio & Quick Ratio",
+      "Inventory Turnover & Receivables",
+      "Operating margin & Net margin",
+      "Free Cash Flow (FCF) explained",
+      "Promoter holding — why it matters",
+      "Pledged shares — the warning sign",
+      "Reading shareholding patterns",
+      "Auditor's report — red flags to look for",
+      "Management quality — how to judge",
+      "Moats — Buffett's #1 idea",
+      "Industry/sector analysis basics",
+      "Porter's 5 Forces — for finance creators",
+      "SWOT analysis for stocks"
+    ]
+  },
+  {
+    level: 4,
+    badge: 'Intermediate +',
+    title: 'Mutual Funds, ETFs & Index Investing',
+    desc: 'The "I don't have time to pick stocks" path. Often the smartest path.',
+    topics: [
+      "What is a mutual fund?",
+      "How mutual funds actually work",
+      "AMC, fund manager, NAV — explained",
+      "Equity vs Debt vs Hybrid funds",
+      "Active funds vs Passive funds",
+      "Large cap, Mid cap, Small cap funds",
+      "Multi cap & Flexi cap funds",
+      "Sectoral & Thematic funds",
+      "ELSS funds & 80C tax benefits",
+      "International / Global funds",
+      "What is an Index Fund?",
+      "Why index funds beat 80% of active funds",
+      "Nifty 50 index fund vs Sensex index fund",
+      "What is an ETF (Exchange-Traded Fund)?",
+      "ETF vs Index Fund — key differences",
+      "Gold ETFs explained",
+      "Liquid funds — better than savings account?",
+      "Debt fund categories explained",
+      "What is a SIP (Systematic Investment Plan)?",
+      "SIP vs Lumpsum — which is better?",
+      "Step-up SIP — the ₹500 hack",
+      "STP (Systematic Transfer Plan)",
+      "SWP (Systematic Withdrawal Plan)",
+      "Direct vs Regular mutual funds",
+      "Expense Ratio — the silent killer",
+      "Exit load — what to watch for",
+      "How to read a Mutual Fund factsheet",
+      "Riskometer & SEBI categories",
+      "How to pick a mutual fund (5-step framework)",
+      "Mutual fund returns — CAGR vs absolute",
+      "Rolling returns vs Trailing returns",
+      "Fund of Funds (FoF) explained",
+      "International ETFs from India",
+      "Portfolio overlap — the hidden problem",
+      "Tax on mutual funds (post 2024 changes)"
+    ]
+  },
+  {
+    level: 5,
+    badge: 'Advanced',
+    title: 'Bonds, Fixed Income & Beyond Stocks',
+    desc: 'The "boring but powerful" world. How smart money builds stable wealth.',
+    topics: [
+      "What is a bond?",
+      "Why governments and companies issue bonds",
+      "Coupon, face value, maturity — explained",
+      "Yield to Maturity (YTM) explained",
+      "Government bonds (G-Secs) of India",
+      "Corporate bonds — risk vs return",
+      "Treasury Bills (T-Bills)",
+      "Sovereign Gold Bonds (SGB)",
+      "RBI Floating Rate Savings Bonds",
+      "Tax-free bonds explained",
+      "Convertible bonds",
+      "Zero-coupon bonds",
+      "Bond ratings — AAA to D",
+      "Credit risk vs Interest rate risk",
+      "Duration & Convexity (simplified)",
+      "Yield curve — what it tells us",
+      "Inverted yield curve = recession?",
+      "REITs — Real Estate Investment Trusts",
+      "Indian REITs available today",
+      "InvITs — Infrastructure Investment Trusts",
+      "PPF vs ELSS vs NPS — comparison",
+      "EPF & VPF explained",
+      "NPS — the underrated retirement tool",
+      "Senior Citizens Savings Scheme (SCSS)",
+      "Sukanya Samriddhi Yojana",
+      "Post Office schemes overview",
+      "Fixed deposits — corporate vs bank",
+      "Recurring deposits — when they make sense",
+      "Asset allocation — the most important decision",
+      "Age-based asset allocation rules",
+      "Portfolio rebalancing — when & how",
+      "Tax-efficient investing strategies",
+      "Tax harvesting — the legal hack",
+      "Building an emergency fund (the right way)"
+    ]
+  },
+  {
+    level: 6,
+    badge: 'Trader',
+    title: 'Technical Analysis & Trading',
+    desc: 'Reading charts, finding patterns, trading with rules — the trader's toolkit.',
+    topics: [
+      "Investing vs Trading — pick your path",
+      "Types of trading: intraday, swing, positional",
+      "What is technical analysis?",
+      "Line, bar & candlestick charts",
+      "Anatomy of a candlestick",
+      "Bullish vs Bearish candles",
+      "Doji, Hammer, Shooting Star",
+      "Engulfing patterns (bullish & bearish)",
+      "Morning Star & Evening Star",
+      "Three White Soldiers / Black Crows",
+      "Support & Resistance — the basics",
+      "Trendlines — drawing them right",
+      "Trend types: uptrend, downtrend, sideways",
+      "Higher highs / Lower lows concept",
+      "Breakouts & Breakdowns",
+      "Volume analysis basics",
+      "Volume Price Action",
+      "Moving averages — SMA vs EMA",
+      "Golden Cross & Death Cross",
+      "RSI — Relative Strength Index",
+      "MACD explained simply",
+      "Bollinger Bands",
+      "Stochastic Oscillator",
+      "ADX — measuring trend strength",
+      "Fibonacci retracement",
+      "Pivot points",
+      "Chart patterns: Head & Shoulders",
+      "Double top & Double bottom",
+      "Triangles — ascending, descending, symmetrical",
+      "Flags & Pennants",
+      "Cup & Handle pattern",
+      "Wedge patterns",
+      "Gap theory — common, breakaway, exhaustion",
+      "Multiple timeframe analysis",
+      "Position sizing — the survival skill",
+      "Risk-reward ratio",
+      "Stop-loss strategies",
+      "Trailing stop-loss",
+      "The 1% rule of risk management",
+      "Trading journal — why every trader needs one",
+      "Backtesting your strategy",
+      "Why 90% of intraday traders lose",
+      "Trading psychology — fear & greed",
+      "The discipline checklist before every trade"
+    ]
+  },
+  {
+    level: 7,
+    badge: 'Advanced Trader',
+    title: 'Derivatives — Futures & Options',
+    desc: 'The leveraged world. Powerful, risky, and where most beginners blow up.',
+    topics: [
+      "What are derivatives?",
+      "Why derivatives exist — hedging vs speculation",
+      "Futures contracts explained",
+      "How futures pricing works",
+      "Lot size & contract value",
+      "Margin requirements in futures",
+      "Mark-to-market (MTM) explained",
+      "Futures expiry — what happens",
+      "Rollover — what & when",
+      "Long vs Short futures",
+      "Hedging with futures (real example)",
+      "What is an Option?",
+      "Call option vs Put option",
+      "Strike price & premium",
+      "ITM, ATM, OTM explained",
+      "Intrinsic vs Time value",
+      "Option premium — what affects it",
+      "Buying options vs Selling options",
+      "Why option sellers usually win",
+      "American vs European options",
+      "Option Greeks — overview",
+      "Delta — what it means",
+      "Gamma explained",
+      "Theta — the silent killer",
+      "Vega & implied volatility",
+      "Rho — interest rate sensitivity",
+      "Implied vs Historical volatility",
+      "India VIX explained",
+      "Open Interest (OI) — reading the data",
+      "PCR — Put Call Ratio",
+      "Max Pain theory",
+      "Option chain — how to read it",
+      "Strategy: Covered Call",
+      "Strategy: Protective Put",
+      "Strategy: Long Straddle",
+      "Strategy: Short Straddle",
+      "Strategy: Strangle",
+      "Strategy: Bull Call Spread",
+      "Strategy: Bear Put Spread",
+      "Strategy: Iron Condor",
+      "Strategy: Iron Butterfly",
+      "Strategy: Calendar Spread",
+      "Strategy: Ratio Spread",
+      "Why retail traders blow up in F&O (SEBI study)",
+      "F&O risk management framework"
+    ]
+  },
+  {
+    level: 8,
+    badge: 'Pro',
+    title: 'Institutional Markets & Big Money',
+    desc: 'How the giants — FIIs, mutual funds, hedge funds — actually move the market.',
+    topics: [
+      "Retail vs Institutional investors",
+      "Who are FIIs / FPIs?",
+      "Why FII flows move Indian markets",
+      "Where to track FII data daily",
+      "DII — Domestic Institutional Investors",
+      "Mutual fund houses (AMCs) of India",
+      "Insurance companies as investors (LIC etc.)",
+      "Pension funds & NPS",
+      "Sovereign wealth funds",
+      "Hedge funds — what they actually do",
+      "Long-short equity strategies",
+      "Global macro funds",
+      "Quant funds — the math nerds",
+      "PMS — Portfolio Management Services",
+      "AIF — Alternative Investment Funds (Cat I/II/III)",
+      "Family offices — India's quiet billionaires",
+      "Block deals & bulk deals",
+      "How institutions accumulate without moving price",
+      "Dark pools (global concept)",
+      "Market makers & liquidity providers",
+      "HFT — High Frequency Trading basics",
+      "Algo trading — what's allowed in India",
+      "Co-location — the millisecond advantage",
+      "Front-running & insider trading",
+      "Pump and dump schemes — how they work",
+      "Market manipulation cases (real examples)",
+      "Short selling — how it really works",
+      "Securities lending & borrowing (SLB)",
+      "Margin trading facility (MTF)",
+      "Derivatives in institutional hedging",
+      "How banks make money from markets",
+      "Investment banking 101",
+      "Underwriting — what it really means",
+      "Anchor investors in IPOs",
+      "QIP — Qualified Institutional Placement",
+      "Preferential allotment",
+      "How to read institutional data signals"
+    ]
+  },
+  {
+    level: 9,
+    badge: 'Pro',
+    title: 'Alternative Investments & Global Markets',
+    desc: 'Beyond stocks — gold, crypto, commodities, real estate, and global markets.',
+    topics: [
+      "Why diversify beyond stocks?",
+      "Gold as an investment — full breakdown",
+      "Physical gold vs Digital gold",
+      "Gold ETFs vs Sovereign Gold Bonds",
+      "Silver — the volatile cousin",
+      "Commodities market basics (MCX)",
+      "Crude oil — the global heartbeat",
+      "Agricultural commodities",
+      "Forex market basics",
+      "USD/INR — why it matters to you",
+      "Currency derivatives",
+      "Real estate as an investment",
+      "Real estate vs Stocks (the eternal debate)",
+      "REITs vs Direct property",
+      "Fractional real estate platforms",
+      "What is cryptocurrency?",
+      "Bitcoin — the original",
+      "Ethereum & smart contracts",
+      "Stablecoins — USDT, USDC",
+      "Crypto wallets — hot vs cold",
+      "Indian crypto regulation (current status)",
+      "Crypto taxation in India",
+      "DeFi — Decentralized Finance",
+      "Yield farming & liquidity pools",
+      "NFTs — what they really are",
+      "Crypto scams — how to spot them",
+      "P2E, GameFi & Web3 basics",
+      "International stocks for Indian investors",
+      "How to invest in US stocks from India",
+      "Liberalised Remittance Scheme (LRS)",
+      "Top US ETFs every Indian should know",
+      "S&P 500, NASDAQ, Dow — explained",
+      "Emerging vs Developed markets",
+      "China, Japan, Europe — global plays",
+      "Currency risk in international investing",
+      "Geo-political risk on portfolios"
+    ]
+  },
+  {
+    level: 10,
+    badge: 'Master',
+    title: 'Macro, Mindset & Mastery',
+    desc: 'The invisible forces — economy, psychology, history — that separate amateurs from masters.',
+    topics: [
+      "Macroeconomics for investors — overview",
+      "GDP — what really matters",
+      "Inflation, CPI, WPI explained",
+      "Repo rate & how RBI moves markets",
+      "How interest rates impact stocks",
+      "Fiscal deficit & budget impact",
+      "Currency depreciation effects",
+      "Trade balance & current account",
+      "How global crises (Lehman, COVID) hit India",
+      "US Fed decisions — why we care",
+      "Commodity cycles & their impact",
+      "Sector rotation — the pro's playbook",
+      "Behavioral finance — overview",
+      "Loss aversion bias",
+      "Confirmation bias",
+      "Anchoring bias",
+      "Recency bias",
+      "Herd mentality in markets",
+      "FOMO investing — the silent killer",
+      "Overconfidence bias",
+      "How to make decisions under uncertainty",
+      "Pre-mortem analysis (a Munger trick)",
+      "Investment journals — why pros keep them",
+      "Famous investor: Warren Buffett's principles",
+      "Famous investor: Peter Lynch & 'invest in what you know'",
+      "Famous investor: Benjamin Graham's value framework",
+      "Famous investor: Charlie Munger's mental models",
+      "Famous investor: Howard Marks on cycles",
+      "Famous Indian: Rakesh Jhunjhunwala's lessons",
+      "Famous Indian: Radhakishan Damani's playbook",
+      "Famous Indian: Vijay Kedia's micro-cap method",
+      "The Coffee Can portfolio approach",
+      "The all-weather portfolio (Ray Dalio)",
+      "Dollar-cost averaging — pros & cons",
+      "Concentration vs Diversification debate",
+      "Market history: 1992, 2000, 2008, 2020 crashes",
+      "Survivorship bias — why we only hear winners",
+      "How long-term wealth is REALLY built (Shiller data)",
+      "Probability thinking & expected value",
+      "Black Swan events — how to prepare",
+      "Anti-fragility — Taleb's idea",
+      "Building a personal investing philosophy",
+      "When to sell — the hardest decision",
+      "Building generational wealth — the framework",
+      "Final post: My 10 commandments of investing"
+    ]
+  }
+];
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+const STORAGE_KEY = 'gnanomicsRoadmapProgress_v1';
+const COLLAPSE_KEY = 'gnanomicsRoadmapCollapsed_v1';
+
+function loadProgress() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+function saveProgress(state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+function loadCollapsed() {
+  try { return JSON.parse(localStorage.getItem(COLLAPSE_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+function saveCollapsed(state) {
+  localStorage.setItem(COLLAPSE_KEY, JSON.stringify(state));
+}
+
+let progress = loadProgress();
+let collapsed = loadCollapsed();
+let totalTopics = 0;
+let topicCounter = 0;
+
+function render() {
+  const container = document.getElementById('levelsContainer');
+  container.innerHTML = '';
+  totalTopics = 0;
+  topicCounter = 0;
+
+  ROADMAP.forEach(level => {
+    totalTopics += level.topics.length;
+  });
+
+  ROADMAP.forEach(level => {
+    const isCollapsed = collapsed[level.level];
+    const completedInLevel = level.topics.filter((_, i) => progress[`${level.level}-${i}`]).length;
+    const pct = Math.round((completedInLevel / level.topics.length) * 100);
+
+    const levelEl = document.createElement('div');
+    levelEl.className = 'level' + (isCollapsed ? ' collapsed' : '');
+    levelEl.dataset.level = level.level;
+
+    levelEl.innerHTML = `
+      <div class="level-header" onclick="toggleLevel(${level.level})">
+        <div class="level-num">${String(level.level).padStart(2,'0')}</div>
+        <div class="level-meta">
+          <span class="badge">${level.badge}</span>
+          <h3>${level.title}</h3>
+          <p>${level.desc}</p>
+        </div>
+        <div class="level-stats">
+          <div class="count"><span class="completed-num">${completedInLevel}</span>/${level.topics.length}</div>
+          <div class="count-label">Topics done</div>
+          <div class="progress-mini"><div class="progress-mini-bar" style="width:${pct}%"></div></div>
+        </div>
+        <div class="toggle-icon">▾</div>
+      </div>
+      <div class="level-body">
+        <div class="topic-list">
+          ${level.topics.map((topic, i) => {
+            topicCounter++;
+            const key = `${level.level}-${i}`;
+            const isDone = progress[key] ? 'done' : '';
+            const checked = progress[key] ? 'checked' : '';
+            return `
+              <label class="topic ${isDone}" data-key="${key}">
+                <input type="checkbox" ${checked} onchange="toggleTopic('${key}', this)" onclick="event.stopPropagation();">
+                <div class="topic-text"><span class="topic-num">#${String(topicCounter).padStart(3,'0')}</span>${topic}</div>
+              </label>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+    container.appendChild(levelEl);
+  });
+
+  document.getElementById('totalCount').textContent = totalTopics;
+  updateProgressUI();
+}
+
+function toggleLevel(level) {
+  collapsed[level] = !collapsed[level];
+  saveCollapsed(collapsed);
+  const el = document.querySelector(`.level[data-level="${level}"]`);
+  el.classList.toggle('collapsed');
+}
+
+function toggleTopic(key, checkbox) {
+  if (checkbox.checked) {
+    progress[key] = true;
+  } else {
+    delete progress[key];
+  }
+  saveProgress(progress);
+  const topicEl = checkbox.closest('.topic');
+  topicEl.classList.toggle('done', checkbox.checked);
+  updateLevelStats(parseInt(key.split('-')[0]));
+  updateProgressUI();
+}
+
+function updateLevelStats(levelNum) {
+  const level = ROADMAP.find(l => l.level === levelNum);
+  const completed = level.topics.filter((_, i) => progress[`${levelNum}-${i}`]).length;
+  const pct = Math.round((completed / level.topics.length) * 100);
+  const levelEl = document.querySelector(`.level[data-level="${levelNum}"]`);
+  if (levelEl) {
+    levelEl.querySelector('.completed-num').textContent = completed;
+    levelEl.querySelector('.progress-mini-bar').style.width = pct + '%';
+  }
+}
+
+function updateProgressUI() {
+  const completed = Object.keys(progress).filter(k => progress[k]).length;
+  const pct = totalTopics > 0 ? Math.round((completed / totalTopics) * 100) : 0;
+  document.getElementById('completedCount').textContent = completed;
+  document.getElementById('progressBar').style.width = pct + '%';
+
+  let label = `${pct}% complete · `;
+  if (pct === 0) label += "let's build your empire 📈";
+  else if (pct < 25) label += "good start — keep going 🚀";
+  else if (pct < 50) label += "you're consistent — that's rare 🔥";
+  else if (pct < 75) label += "halfway hero — momentum is real 💪";
+  else if (pct < 100) label += "almost there — finish strong 🏁";
+  else label += "MASTERED. you're in the top 1%. 👑";
+  document.getElementById('progressLabel').textContent = label;
+}
+
+/* ============== FILTERS ============== */
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const f = btn.dataset.filter;
+    if (f === 'expand') {
+      ROADMAP.forEach(l => collapsed[l.level] = false);
+      saveCollapsed(collapsed);
+      render();
+      return;
+    }
+    if (f === 'collapse') {
+      ROADMAP.forEach(l => collapsed[l.level] = true);
+      saveCollapsed(collapsed);
+      render();
+      return;
+    }
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.topic').forEach(t => {
+      const isDone = t.classList.contains('done');
+      if (f === 'all') t.style.display = '';
+      else if (f === 'todo') t.style.display = isDone ? 'none' : '';
+      else if (f === 'done') t.style.display = isDone ? '' : 'none';
+    });
+  });
+});
+
+/* ============== ACTIONS ============== */
+function exportProgress() {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    totalTopics,
+    completedCount: Object.keys(progress).length,
+    progress
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `gnanomics-progress-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function resetProgress() {
+  if (confirm('Reset ALL progress? This cannot be undone.')) {
+    progress = {};
+    saveProgress(progress);
+    render();
+  }
+}
+
+/* ============== INIT ============== */
+render();
+</script>
+</body>
+</html>
