@@ -26,9 +26,10 @@ rrRatio = input.float(2.0, "Risk:Reward Ratio", minval = 1.0, step = 0.5,
      group = "Risk Management",
      tooltip = "Target = entry +/- (risk x this multiple). Default 2 = 1:2 R:R.")
 
-oneTradePerDay = input.bool(true, "Only one trade per day (challenge rule)",
+oneTradePerDay = input.bool(false, "Only one trade per day (challenge rule)",
      group = "Trade Management",
-     tooltip = "ON = first valid signal each day fires, then the script waits for tomorrow.")
+     tooltip = "OFF (default) = show every triggered signal. " +
+               "ON = enforce the challenge's one-trade-per-day rule (first valid signal locks the day).")
 
 useSession = input.bool(true,         "Restrict to session", group = "Trade Management")
 sessionStr = input.session("0915-1500","Session (Exchange Time)", group = "Trade Management")
