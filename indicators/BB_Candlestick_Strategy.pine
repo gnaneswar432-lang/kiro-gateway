@@ -185,12 +185,14 @@ patternName() =>
 inSession = useSession ? not na(time(timeframe.period, sessionStr)) : true
 
 // --------------------- ONE TRADE PER DAY GATE ------------------------
-var int lastSignalDay = na
+// Pine v6 is strict about `var ... = na` type inference, so we use a
+// plain bool flag that resets at the start of each new trading day.
+var bool signaledToday = false
 isNewDay = ta.change(time("D")) != 0
 if isNewDay
-    lastSignalDay := na
+    signaledToday := false
 
-canSignalToday = oneTradePerDay ? na(lastSignalDay) : true
+canSignalToday = oneTradePerDay ? not signaledToday : true
 
 // --------------------------- SIGNALS ---------------------------------
 rawBuy  = bullishPattern and nearLowerBand and inSession
@@ -201,14 +203,16 @@ sellSignal = rawSell and canSignalToday
 
 // Lock the day after a signal fires
 if buySignal or sellSignal
-    lastSignalDay := time
+    signaledToday := true
 
 // ----------------------- SL / TARGET LEVELS --------------------------
-var float entryPrice = na
-var float slPrice    = na
-var float tpPrice    = na
-var int   entryBar   = na
-var bool  isLong     = na
+// Initialise with concrete defaults to satisfy Pine v6's stricter type
+// inference (avoids "Cannot assign na to const ..." compile errors).
+var float entryPrice = 0.0
+var float slPrice    = 0.0
+var float tpPrice    = 0.0
+var int   entryBar   = 0
+var bool  isLong     = false
 
 if buySignal
     entryPrice := close
