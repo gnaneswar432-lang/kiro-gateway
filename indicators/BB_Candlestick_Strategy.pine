@@ -1,415 +1,142 @@
 //@version=6
 // =====================================================================
-//  Nifty 50 - 100 Days Trading Challenge
-//  Strategy : Bollinger Band (20, 1.5) + Candlestick Reversal Patterns
-//  Timeframe: 5-minute (Intraday only)
-//  Instrument: Nifty Futures (Delta = 1)
-//  Risk-Reward: 1:2 minimum
-// =====================================================================
-//  BUY  -> Bullish reversal candle forming at/near LOWER Bollinger Band
-//  SELL -> Bearish reversal candle forming at/near UPPER Bollinger Band
+//  Nifty 50 - 100 Days Trading Challenge (Day 62)
+//  Strategy: Bollinger Band (20, 1.5) + Candlestick
 //
-//  v2 - Quality filter pack added to eliminate fake signals:
-//        1. Higher-timeframe trend filter (don't fade strong trends)
-//        2. RSI confirmation (avoid catching falling knives / shorting strength)
-//        3. Volume above average (require conviction)
-//        4. ATR-based minimum candle range (skip dead bars)
-//        5. Cooldown bars after a signal (no back-to-back triggers)
-//        6. No-trade zones (open / lunch / close blackout)
-//        7. Pattern strength (reject doji-like hammers/stars)
+//  RULES (taken directly from the strategy images):
+//   - BUY  : ANY bullish candle (close > open) forming in the LOWER band
+//            (i.e. the candle's low touches/crosses the lower band).
+//   - SELL : ANY bearish candle (close < open) forming in the UPPER band
+//            (i.e. the candle's high touches/crosses the upper band).
+//   - SL   : low of signal candle (Buy) / high of signal candle (Sell).
+//   - TP   : Risk:Reward = 1:2 minimum.
+//   - ONE trade per day, 5-minute, Nifty Futures, intraday only.
 // =====================================================================
-indicator("BB(20,1.5) + Candlestick - Buy/Sell Signals [100 Days Challenge v2]",
-     shorttitle        = "BB+Candle 100D v2",
+indicator("BB(20,1.5) + Candlestick - 100 Days Challenge",
+     shorttitle        = "BB+Candle 100D",
      overlay           = true,
      max_labels_count  = 500,
-     max_lines_count   = 500,
-     max_boxes_count   = 500)
+     max_lines_count   = 500)
 
-// ============================== INPUTS ===============================
-const string grpBB  = "Bollinger Band Settings"
-bbLen   = input.int(20,    "BB Length", minval = 1, group = grpBB)
-bbMult  = input.float(1.5, "BB StdDev", minval = 0.1, step = 0.1, group = grpBB)
-bbSrc   = input.source(close, "BB Source", group = grpBB)
+// ============================ INPUTS =================================
+bbLen   = input.int(20,    "BB Length",   minval = 1,   group = "Bollinger Band")
+bbMult  = input.float(1.5, "BB StdDev",   minval = 0.1, step = 0.1, group = "Bollinger Band")
 
-const string grpSig = "Signal Basics"
-touchMode = input.string("Strict Rejection", "Band Interaction Mode",
-     options = ["Wick Touch", "Body Cross", "Strict Rejection"], group = grpSig,
-     tooltip = "How the signal candle must interact with the Bollinger Band:\n\n" +
-               "Wick Touch  - low (Buy) / high (Sell) pierces the band.\n\n" +
-               "Body Cross  - candle CLOSES beyond the band.\n\n" +
-               "Strict Rejection (recommended) - wick pierces the band AND " +
-               "close rejects back inside the band. Classic pin-bar pattern.")
-touchTolPct = input.float(0.0, "Band proximity tolerance (% of price)",
-     minval = 0.0, step = 0.01, group = grpSig,
-     tooltip = "Default 0 = candle must ACTUALLY touch the band. " +
-               "Set > 0 only if you want to accept near-misses.")
-oneTradePerDay = input.bool(false, "Only one signal per trading day", group = grpSig,
-     tooltip = "OFF = show every signal that triggers. ON = enforce the 100 Days Challenge rule of one trade per day.")
+rrRatio = input.float(2.0, "Risk:Reward Ratio", minval = 1.0, step = 0.5,
+     group = "Risk Management",
+     tooltip = "Target = entry +/- (risk x this multiple). Default 2 = 1:2 R:R.")
 
-// --- QUALITY FILTERS (the fake-signal killer) ----------------------
-const string grpQual = "Quality Filters (Eliminates Fake Signals)"
+oneTradePerDay = input.bool(true, "Only one trade per day (challenge rule)",
+     group = "Trade Management",
+     tooltip = "ON = first valid signal each day fires, then the script waits for tomorrow.")
 
-useHTFTrend  = input.bool(true, "Higher-TF trend filter", group = grpQual,
-     tooltip = "Only Buy when higher-TF EMA is rising or flat; only Sell when falling or flat. The single biggest noise filter.")
-htfTF        = input.timeframe("15", "Higher timeframe", group = grpQual)
-htfEMALen    = input.int(50, "HTF EMA length", minval = 1, group = grpQual)
+useSession = input.bool(true,         "Restrict to session", group = "Trade Management")
+sessionStr = input.session("0915-1500","Session (Exchange Time)", group = "Trade Management")
 
-useRSI       = input.bool(true, "RSI confirmation", group = grpQual,
-     tooltip = "Buy only if RSI <= rsiBuyMax (oversold). Sell only if RSI >= rsiSellMin (overbought).")
-rsiLen       = input.int(14,   "RSI length",       minval = 1, group = grpQual)
-rsiBuyMax    = input.float(40, "RSI <= this for BUY",  step = 1, group = grpQual)
-rsiSellMin   = input.float(60, "RSI >= this for SELL", step = 1, group = grpQual)
-
-useVolume    = input.bool(true, "Volume confirmation", group = grpQual,
-     tooltip = "Signal candle volume must beat its 20-bar average (conviction check).")
-volLen       = input.int(20,   "Volume SMA length", minval = 1, group = grpQual)
-volMult      = input.float(1.0,"Volume multiplier (x SMA)", step = 0.1, group = grpQual)
-
-useATR       = input.bool(true, "Minimum candle range (ATR)", group = grpQual,
-     tooltip = "Reject narrow / dead bars. Range must be at least atrMult x ATR(atrLen).")
-atrLen       = input.int(14,   "ATR length", minval = 1, group = grpQual)
-atrMult      = input.float(0.5,"Min range / ATR", step = 0.1, minval = 0.0, group = grpQual)
-
-useCooldown  = input.bool(true, "Cooldown bars after a signal", group = grpQual,
-     tooltip = "Block new signals for N bars after one fires. Stops back-to-back stop-outs.")
-cooldownBars = input.int(5, "Cooldown bars", minval = 0, group = grpQual)
-
-useNoTradeZones = input.bool(true, "Avoid open / lunch / close zones", group = grpQual,
-     tooltip = "Skip 09:15-09:30 (opening auction noise), 12:30-13:30 (lunch lull), 14:30-15:00 IST (closing volatility).")
-
-usePatStrength = input.bool(true, "Pattern strength check", group = grpQual,
-     tooltip = "Reject doji-style hammers / stars. Requires the body to be at least 10% of the candle range.")
-
-// --- SESSION ---
-const string grpTime = "Session"
-useSession = input.bool(true, "Restrict signals to session window", group = grpTime)
-sessionStr = input.session("0915-1500", "Session (Exchange Time)",  group = grpTime)
-
-// --- RISK ---
-const string grpRR  = "Risk Management"
-rrRatio       = input.float(2.0, "Risk:Reward Ratio (Target multiple of SL)", minval = 1.0, step = 0.5, group = grpRR)
-slBufferTicks = input.float(0.0, "Extra SL buffer (price units)", minval = 0.0, step = 0.05, group = grpRR,
-     tooltip = "Add a small buffer below low (Buy) / above high (Sell) to avoid wick stop-outs.")
-
-// --- PATTERNS ---
-const string grpPat = "Candlestick Patterns to Use"
-useHammer       = input.bool(true, "Hammer (Bullish)",       group = grpPat)
-useBullEngulf   = input.bool(true, "Bullish Engulfing",      group = grpPat)
-usePiercing     = input.bool(true, "Piercing Pattern",       group = grpPat)
-useBullHarami   = input.bool(false,"Bullish Harami (lower quality)", group = grpPat)
-useBullMarubozu = input.bool(true, "Bullish Marubozu",       group = grpPat)
-
-useShootingStar = input.bool(true, "Shooting Star (Bearish)", group = grpPat)
-useBearEngulf   = input.bool(true, "Bearish Engulfing",       group = grpPat)
-useDarkCloud    = input.bool(true, "Dark Cloud Cover",        group = grpPat)
-useBearHarami   = input.bool(false,"Bearish Harami (lower quality)", group = grpPat)
-useBearMarubozu = input.bool(true, "Bearish Marubozu",        group = grpPat)
-
-// --- VISUALS ---
-const string grpVis = "Visuals"
-showSL_TP   = input.bool(true,  "Plot SL / Target levels",      group = grpVis)
-showLabels  = input.bool(true,  "Plot signal labels",           group = grpVis)
-showPattern = input.bool(true,  "Show pattern name on label",   group = grpVis)
-showInfoBox = input.bool(true,  "Show info box (top-right)",    group = grpVis)
-bandFill    = input.bool(true,  "Shade between bands",          group = grpVis)
-
-// ========================== BOLLINGER BANDS ==========================
-basis = ta.sma(bbSrc, bbLen)
-dev   = bbMult * ta.stdev(bbSrc, bbLen)
+// ====================== BOLLINGER BANDS ==============================
+basis = ta.sma(close, bbLen)
+dev   = bbMult * ta.stdev(close, bbLen)
 upper = basis + dev
 lower = basis - dev
 
-pUpper = plot(upper, "BB Upper", color = color.new(#1976D2, 0), linewidth = 2)
-pBasis = plot(basis, "BB Basis", color = color.new(#FB8C00, 0), linewidth = 1)
-pLower = plot(lower, "BB Lower", color = color.new(#1976D2, 0), linewidth = 2)
-fill(pUpper, pLower, color = bandFill ? color.new(#1976D2, 92) : na, title = "BB Fill")
+pUpper = plot(upper, "BB Upper", color = color.new(#000000, 0), linewidth = 2)
+pBasis = plot(basis, "BB Basis", color = color.new(#1E88E5, 0), linewidth = 1)
+pLower = plot(lower, "BB Lower", color = color.new(#00897B, 0), linewidth = 2)
+fill(pUpper, pLower, color = color.new(#1E88E5, 95), title = "BB Fill")
 
-// ============================ HELPERS ================================
-body      = math.abs(close - open)
-range1    = high - low
-upperWick = high - math.max(close, open)
-lowerWick = math.min(close, open) - low
-isBullCdl = close > open
-isBearCdl = close < open
+// ============= STRATEGY LOGIC (exactly as per the image) =============
+isBullishCandle = close > open
+isBearishCandle = close < open
 
-// =================== BAND-INTERACTION LOGIC ==========================
-// This is the FIX for the previous defect where signals fired without
-// the candle actually touching/crossing the band.
-tolerance = close * touchTolPct / 100.0
+// "Candle forming in the lower band" = wick (or body) has reached the lower band
+candleAtLowerBand = low  <= lower
+// "Candle forming in the upper band" = wick (or body) has reached the upper band
+candleAtUpperBand = high >= upper
 
-// --- Lower band (for BUY) ---
-// Wick must pierce / touch the lower band
-wickTouchedLower = low <= lower + tolerance
-// Body close must print BELOW the lower band
-bodyCrossedLower = close <= lower + tolerance
-// Strict pin-bar rejection: wick pierced, but close came back ABOVE the band
-strictRejectLower = wickTouchedLower and close > lower
-
-nearLowerBand = touchMode == "Wick Touch"  ? wickTouchedLower :
-                touchMode == "Body Cross"  ? bodyCrossedLower :
-                                             strictRejectLower
-
-// --- Upper band (for SELL) ---
-wickTouchedUpper = high >= upper - tolerance
-bodyCrossedUpper = close >= upper - tolerance
-strictRejectUpper = wickTouchedUpper and close < upper
-
-nearUpperBand = touchMode == "Wick Touch"  ? wickTouchedUpper :
-                touchMode == "Body Cross"  ? bodyCrossedUpper :
-                                             strictRejectUpper
-
-priorBody1 = math.abs(close[1] - open[1])
-priorMid1  = (open[1] + close[1]) / 2.0
-
-// Pattern strength gate (rejects doji-like reversals)
-bodyOK = not usePatStrength or (range1 > 0 and body / range1 >= 0.10)
-
-// =================== CANDLESTICK PATTERN DETECTION ===================
-hammer = useHammer and range1 > 0 and bodyOK and
-     lowerWick >= 2.0 * body and
-     upperWick <= body * 0.5 and
-     body > 0 and
-     body / range1 <= 0.35
-
-bullEngulf = useBullEngulf and isBullCdl and close[1] < open[1] and bodyOK and
-     open  <= close[1] and
-     close >= open[1] and
-     body  > priorBody1
-
-piercing = usePiercing and isBullCdl and close[1] < open[1] and bodyOK and
-     open  < low[1] and
-     close > priorMid1 and
-     close < open[1] and
-     priorBody1 > 0
-
-bullHarami = useBullHarami and isBullCdl and close[1] < open[1] and
-     priorBody1 > 0 and
-     high <= open[1] and
-     low  >= close[1] and
-     body < priorBody1 * 0.6
-
-bullMarubozu = useBullMarubozu and isBullCdl and range1 > 0 and bodyOK and
-     body / range1 >= 0.92 and
-     upperWick <= range1 * 0.05 and
-     lowerWick <= range1 * 0.05
-
-shootingStar = useShootingStar and range1 > 0 and bodyOK and
-     upperWick >= 2.0 * body and
-     lowerWick <= body * 0.5 and
-     body > 0 and
-     body / range1 <= 0.35
-
-bearEngulf = useBearEngulf and isBearCdl and close[1] > open[1] and bodyOK and
-     open  >= close[1] and
-     close <= open[1] and
-     body  > priorBody1
-
-darkCloud = useDarkCloud and isBearCdl and close[1] > open[1] and bodyOK and
-     open  > high[1] and
-     close < priorMid1 and
-     close > open[1] and
-     priorBody1 > 0
-
-bearHarami = useBearHarami and isBearCdl and close[1] > open[1] and
-     priorBody1 > 0 and
-     high <= close[1] and
-     low  >= open[1] and
-     body < priorBody1 * 0.6
-
-bearMarubozu = useBearMarubozu and isBearCdl and range1 > 0 and bodyOK and
-     body / range1 >= 0.92 and
-     upperWick <= range1 * 0.05 and
-     lowerWick <= range1 * 0.05
-
-bullishPattern = hammer or bullEngulf or piercing or bullHarami or bullMarubozu
-bearishPattern = shootingStar or bearEngulf or darkCloud or bearHarami or bearMarubozu
-
-patternName() =>
-    string n = ""
-    n := hammer       ? "Hammer"            : n
-    n := bullEngulf   ? "Bullish Engulfing" : n
-    n := piercing     ? "Piercing"          : n
-    n := bullHarami   ? "Bullish Harami"    : n
-    n := bullMarubozu ? "Bullish Marubozu"  : n
-    n := shootingStar ? "Shooting Star"     : n
-    n := bearEngulf   ? "Bearish Engulfing" : n
-    n := darkCloud    ? "Dark Cloud Cover"  : n
-    n := bearHarami   ? "Bearish Harami"    : n
-    n := bearMarubozu ? "Bearish Marubozu"  : n
-    n
-
-// ====================== QUALITY FILTERS ==============================
-
-// 1. Higher-timeframe trend (the big one)
-htfEMA      = request.security(syminfo.tickerid, htfTF, ta.ema(close, htfEMALen),
-     barmerge.gaps_off, barmerge.lookahead_off)
-htfRising   = htfEMA >= htfEMA[1]
-htfFalling  = htfEMA <= htfEMA[1]
-htfBuyOK    = not useHTFTrend or htfRising
-htfSellOK   = not useHTFTrend or htfFalling
-
-// 2. RSI confirmation
-rsiVal    = ta.rsi(close, rsiLen)
-rsiBuyOK  = not useRSI or rsiVal <= rsiBuyMax
-rsiSellOK = not useRSI or rsiVal >= rsiSellMin
-
-// 3. Volume above average
-volSMA = ta.sma(volume, volLen)
-volOK  = not useVolume or (not na(volume) and volume >= volSMA * volMult)
-
-// 4. ATR-based minimum range
-atrVal  = ta.atr(atrLen)
-rangeOK = not useATR or range1 >= atrVal * atrMult
-
-// 5. Cooldown after a fired signal
-var int lastSignalBar = -10000
-cooldownOK = not useCooldown or (bar_index - lastSignalBar) > cooldownBars
-
-// 6. No-trade zones (IST)
-hh = hour  (time, "Asia/Kolkata")
-mm = minute(time, "Asia/Kolkata")
-totalMin = hh * 60 + mm
-inOpening = totalMin >= 555 and totalMin < 570    //  9:15 - 9:30
-inLunch   = totalMin >= 750 and totalMin < 810    // 12:30 -13:30
-inClosing = totalMin >= 870 and totalMin < 900    // 14:30 -15:00
-zoneOK    = not useNoTradeZones or (not inOpening and not inLunch and not inClosing)
-
-// Aggregate quality gates per direction
-qualityBuyOK  = htfBuyOK  and rsiBuyOK  and volOK and rangeOK and cooldownOK and zoneOK
-qualitySellOK = htfSellOK and rsiSellOK and volOK and rangeOK and cooldownOK and zoneOK
-
-// ============================ SESSION ================================
 inSession = useSession ? not na(time(timeframe.period, sessionStr)) : true
 
-// ====================== ONE-TRADE-PER-DAY GATE =======================
-var bool signaledToday = false
-isNewDay = ta.change(time("D")) != 0
-if isNewDay
-    signaledToday := false
+rawBuy  = isBullishCandle and candleAtLowerBand and inSession
+rawSell = isBearishCandle and candleAtUpperBand and inSession
 
-canSignalToday = oneTradePerDay ? not signaledToday : true
+// ============= ONE TRADE PER DAY (challenge rule) ====================
+var bool tradedToday = false
+if ta.change(time("D")) != 0
+    tradedToday := false
 
-// ============================ SIGNALS ================================
-rawBuy  = bullishPattern and nearLowerBand and inSession and qualityBuyOK
-rawSell = bearishPattern and nearUpperBand and inSession and qualitySellOK
+canSignal = oneTradePerDay ? not tradedToday : true
 
-buySignal  = rawBuy  and canSignalToday
-sellSignal = rawSell and canSignalToday
+buySignal  = rawBuy  and canSignal
+sellSignal = rawSell and canSignal
 
 if buySignal or sellSignal
-    signaledToday := true
-    lastSignalBar := bar_index
+    tradedToday := true
 
-// ====================== SL / TARGET LEVELS ===========================
+// ====================== SL / TARGET (1:2 R:R) ========================
 var float entryPrice = 0.0
 var float slPrice    = 0.0
 var float tpPrice    = 0.0
 
 if buySignal
     entryPrice := close
-    slPrice    := low - slBufferTicks
+    slPrice    := low
     risk        = entryPrice - slPrice
     tpPrice    := entryPrice + risk * rrRatio
 
 if sellSignal
     entryPrice := close
-    slPrice    := high + slBufferTicks
+    slPrice    := high
     risk        = slPrice - entryPrice
     tpPrice    := entryPrice - risk * rrRatio
 
-// =========================== PLOTTING ================================
+// ============================ PLOTTING ===============================
 plotshape(buySignal,  title = "BUY",  style = shape.triangleup,
      location  = location.belowbar, color = color.new(#00897B, 0),
-     size      = size.small,        text  = "BUY",
+     size      = size.normal,       text  = "BUY",
      textcolor = color.white)
 
 plotshape(sellSignal, title = "SELL", style = shape.triangledown,
      location  = location.abovebar, color = color.new(#C62828, 0),
-     size      = size.small,        text  = "SELL",
+     size      = size.normal,       text  = "SELL",
      textcolor = color.white)
 
-if showLabels and (buySignal or sellSignal)
-    txt = (buySignal ? "BUY\n" : "SELL\n") +
-          (showPattern ? patternName() + "\n" : "") +
-          "Entry: " + str.tostring(entryPrice, format.mintick) + "\n" +
-          "SL: "    + str.tostring(slPrice,    format.mintick) + "\n" +
-          "TP(1:" + str.tostring(rrRatio, "#.#") + "): " +
+// Big info label on the signal bar
+if buySignal or sellSignal
+    txt = (buySignal ? "BUY" : "SELL") + "\n" +
+          "Entry: "  + str.tostring(entryPrice, format.mintick) + "\n" +
+          "SL: "     + str.tostring(slPrice,    format.mintick) + "\n" +
+          "TP (1:" + str.tostring(rrRatio, "#.#") + "): " +
                   str.tostring(tpPrice, format.mintick)
     label.new(bar_index, buySignal ? low : high, text = txt,
          style     = buySignal ? label.style_label_up : label.style_label_down,
-         color     = buySignal ? color.new(#00897B, 10) : color.new(#C62828, 10),
+         color     = buySignal ? color.new(#00897B, 0) : color.new(#C62828, 0),
          textcolor = color.white,
-         size      = size.small,
+         size      = size.normal,
          yloc      = buySignal ? yloc.belowbar : yloc.abovebar)
 
+// Persistent SL / Entry / Target lines for the day's trade
 var line slLine = na
 var line tpLine = na
 var line enLine = na
 
-if showSL_TP and (buySignal or sellSignal)
+if buySignal or sellSignal
     line.delete(slLine)
     line.delete(tpLine)
     line.delete(enLine)
     enLine := line.new(bar_index, entryPrice, bar_index + 60, entryPrice,
-         color = color.new(color.gray, 0), width = 1, style = line.style_dashed)
+         color = color.new(color.gray,    0), width = 1, style = line.style_dashed)
     slLine := line.new(bar_index, slPrice,    bar_index + 60, slPrice,
-         color = color.new(#C62828, 0), width = 2)
+         color = color.new(#C62828, 0),       width = 2)
     tpLine := line.new(bar_index, tpPrice,    bar_index + 60, tpPrice,
-         color = color.new(#00897B, 0), width = 2)
+         color = color.new(#00897B, 0),       width = 2)
 
 bgcolor(buySignal  ? color.new(#00897B, 85) : na, title = "Buy bg")
 bgcolor(sellSignal ? color.new(#C62828, 85) : na, title = "Sell bg")
 
-// =========================== ALERTS ==================================
+// ============================ ALERTS =================================
 alertcondition(buySignal,
-     title   = "BUY Signal (BB+Candlestick)",
-     message = "BUY @ {{close}} | SL & Target plotted | 100 Days Challenge")
+     title   = "BUY Signal",
+     message = "BUY at lower BB | Entry {{close}} | 100 Days Challenge")
 
 alertcondition(sellSignal,
-     title   = "SELL Signal (BB+Candlestick)",
-     message = "SELL @ {{close}} | SL & Target plotted | 100 Days Challenge")
-
-// =========================== INFO BOX ================================
-var table infoTbl = table.new(position.top_right, 2, 8,
-     bgcolor       = color.new(color.black, 70),
-     border_width  = 1,
-     border_color  = color.new(color.gray, 50))
-
-if showInfoBox and barstate.islast
-    table.cell(infoTbl, 0, 0, "BB+Candle 100D v2",       text_color = color.white,  bgcolor = color.new(#00897B, 30), text_size = size.small)
-    table.cell(infoTbl, 1, 0, syminfo.ticker,             text_color = color.white,  bgcolor = color.new(#00897B, 30), text_size = size.small)
-    table.cell(infoTbl, 0, 1, "Touch Mode",               text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 1, touchMode,                  text_color = color.aqua,   text_size = size.small)
-    table.cell(infoTbl, 0, 2, "Timeframe",                text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 2, timeframe.period,           text_color = color.white,  text_size = size.small)
-    table.cell(infoTbl, 0, 3, "BB U / B / L",             text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 3,
-         str.tostring(upper, format.mintick) + " / " +
-         str.tostring(basis, format.mintick) + " / " +
-         str.tostring(lower, format.mintick),             text_color = color.white,  text_size = size.small)
-    table.cell(infoTbl, 0, 4, "RSI(" + str.tostring(rsiLen) + ")", text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 4, str.tostring(rsiVal, "#.#"),         text_color = rsiVal > 70 ? color.red : rsiVal < 30 ? color.lime : color.white, text_size = size.small)
-    table.cell(infoTbl, 0, 5, "HTF EMA(" + str.tostring(htfEMALen) + " " + htfTF + ")", text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 5, (htfRising ? "UP" : htfFalling ? "DOWN" : "FLAT"),
-         text_color = htfRising ? color.lime : htfFalling ? color.red : color.yellow, text_size = size.small)
-    table.cell(infoTbl, 0, 6, "Vol vs avg",               text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 6, str.tostring(volume / volSMA, "#.##") + "x",
-         text_color = volume >= volSMA * volMult ? color.lime : color.gray, text_size = size.small)
-    table.cell(infoTbl, 0, 7, "Range / ATR",              text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 7, str.tostring(range1 / atrVal, "#.##") + "x",
-         text_color = range1 >= atrVal * atrMult ? color.lime : color.gray, text_size = size.small)
-
-// =====================================================================
-//  USAGE NOTES (Senior Trader Recommendations)
-//  v2 quality filters cut signal count by ~60-70% but raise win-rate
-//  significantly. If you find signals are TOO rare:
-//    - Loosen RSI bands (raise rsiBuyMax to 45, lower rsiSellMin to 55)
-//    - Reduce volMult to 0.8
-//    - Reduce atrMult to 0.4
-//    - Disable HTF trend filter on pure mean-reverting days
-//
-//  If signals still feel like noise:
-//    - Tighten touchTolPct to 0.0 (band must be pierced, not just kissed)
-//    - Raise atrMult to 0.7
-//    - Disable Hammer & Shooting Star (they're the loosest patterns)
-// =====================================================================
+     title   = "SELL Signal",
+     message = "SELL at upper BB | Entry {{close}} | 100 Days Challenge")
