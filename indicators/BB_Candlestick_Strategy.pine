@@ -33,7 +33,8 @@ const string grpSig = "Signal Filters"
 useTouch       = input.bool(true,  "Require candle to touch the band",      group = grpSig)
 touchTolPct    = input.float(0.10, "Band proximity tolerance (% of price)", minval = 0.0, step = 0.05, group = grpSig,
      tooltip = "How close the candle's wick must be to the band to qualify. 0.10 = 0.10% of price.")
-oneTradePerDay = input.bool(true, "Only one signal per trading day", group = grpSig)
+oneTradePerDay = input.bool(false, "Only one signal per trading day", group = grpSig,
+     tooltip = "OFF = show every signal that triggers (default). ON = enforce the 100 Days Challenge rule of one trade per day.")
 
 const string grpTime = "Intraday Session Filter"
 useSession  = input.bool(true, "Restrict signals to session window", group = grpTime)
@@ -62,6 +63,8 @@ const string grpVis = "Visuals"
 showSL_TP   = input.bool(true, "Plot SL / Target levels",      group = grpVis)
 showLabels  = input.bool(true, "Plot signal labels",           group = grpVis)
 showPattern = input.bool(true, "Show pattern name on label",   group = grpVis)
+showInfoBox = input.bool(true, "Show info box (top-right)",    group = grpVis)
+bandFill    = input.bool(true, "Shade between bands",          group = grpVis)
 
 // ------------------------- BOLLINGER BANDS ---------------------------
 basis = ta.sma(bbSrc, bbLen)
@@ -69,10 +72,10 @@ dev   = bbMult * ta.stdev(bbSrc, bbLen)
 upper = basis + dev
 lower = basis - dev
 
-pBasis = plot(basis, "BB Basis", color = color.new(color.blue, 0))
-pUpper = plot(upper, "BB Upper", color = color.new(color.black, 0), linewidth = 2)
-pLower = plot(lower, "BB Lower", color = color.new(color.teal,  0), linewidth = 2)
-fill(pUpper, pLower, color = color.new(color.aqua, 92), title = "BB Fill")
+pUpper = plot(upper, "BB Upper", color = color.new(#1976D2, 0), linewidth = 2)
+pBasis = plot(basis, "BB Basis", color = color.new(#FB8C00, 0), linewidth = 1)
+pLower = plot(lower, "BB Lower", color = color.new(#1976D2, 0), linewidth = 2)
+fill(pUpper, pLower, color = bandFill ? color.new(#1976D2, 92) : na, title = "BB Fill")
 
 // --------------------------- HELPERS ---------------------------------
 body      = math.abs(close - open)
@@ -277,6 +280,28 @@ alertcondition(buySignal,
 alertcondition(sellSignal,
      title   = "SELL Signal (BB+Candlestick)",
      message = "SELL @ {{close}} | SL & Target plotted | 100 Days Challenge")
+
+// --------------------------- INFO BOX --------------------------------
+// A compact top-right table that proves the indicator is loaded on the
+// correct symbol/timeframe and reflects current BB values.
+var table infoTbl = table.new(position.top_right, 2, 6,
+     bgcolor   = color.new(color.black, 70),
+     border_width = 1,
+     border_color = color.new(color.gray, 50))
+
+if showInfoBox and barstate.islast
+    table.cell(infoTbl, 0, 0, "BB+Candle 100D",          text_color = color.white,  bgcolor = color.new(#00897B, 30), text_size = size.small)
+    table.cell(infoTbl, 1, 0, syminfo.ticker,            text_color = color.white,  bgcolor = color.new(#00897B, 30), text_size = size.small)
+    table.cell(infoTbl, 0, 1, "Timeframe",               text_color = color.silver, text_size = size.small)
+    table.cell(infoTbl, 1, 1, timeframe.period,          text_color = color.white,  text_size = size.small)
+    table.cell(infoTbl, 0, 2, "BB Upper",                text_color = color.silver, text_size = size.small)
+    table.cell(infoTbl, 1, 2, str.tostring(upper, format.mintick), text_color = color.white, text_size = size.small)
+    table.cell(infoTbl, 0, 3, "BB Basis",                text_color = color.silver, text_size = size.small)
+    table.cell(infoTbl, 1, 3, str.tostring(basis, format.mintick), text_color = color.white, text_size = size.small)
+    table.cell(infoTbl, 0, 4, "BB Lower",                text_color = color.silver, text_size = size.small)
+    table.cell(infoTbl, 1, 4, str.tostring(lower, format.mintick), text_color = color.white, text_size = size.small)
+    table.cell(infoTbl, 0, 5, "Last Close",              text_color = color.silver, text_size = size.small)
+    table.cell(infoTbl, 1, 5, str.tostring(close, format.mintick), text_color = color.yellow, text_size = size.small)
 
 // =====================================================================
 //  USAGE NOTES (Senior Trader Recommendations)

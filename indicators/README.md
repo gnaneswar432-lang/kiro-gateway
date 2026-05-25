@@ -27,6 +27,15 @@ Written in **Pine Script v6** (TradingView's latest, released 2025).
 3. Click **Save** → **Add to chart**.
 4. Right-click any signal → *Add alert* → choose **BUY Signal** or **SELL Signal**.
 
+## If the bands appear in a separate pane below the candles
+
+The script declares `overlay = true`, so it should sit **on top of the price chart**. If TradingView accidentally drops it into its own sub-panel, fix it once:
+
+- **Right-click the indicator's name** (top-left of the chart) → **Move to** → **Existing Pane Above**, OR
+- Drag the bottom edge of the indicator panel up onto the candle panel until they merge.
+
+Once merged, the BB lines will hug the candles exactly as in the strategy images.
+
 ## Recommended settings (per challenge rules)
 
 | Input | Value |
@@ -34,7 +43,7 @@ Written in **Pine Script v6** (TradingView's latest, released 2025).
 | BB Length | 20 |
 | BB StdDev | 1.5 |
 | Risk:Reward | 2.0 |
-| One signal per day | ✅ ON |
+| One signal per day | **OFF** by default (shows every trigger). Turn **ON** when running the strict 100-day challenge. |
 | Session | 0915-1500 (or 0925-1500 to skip opening noise) |
 | Touch tolerance | 0.10 % |
 
