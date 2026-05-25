@@ -32,9 +32,17 @@ bbMult  = input.float(1.5, "BB StdDev", minval = 0.1, step = 0.1, group = grpBB)
 bbSrc   = input.source(close, "BB Source", group = grpBB)
 
 const string grpSig = "Signal Basics"
-useTouch       = input.bool(true,  "Require candle to touch the band", group = grpSig)
-touchTolPct    = input.float(0.05, "Band proximity tolerance (% of price)", minval = 0.0, step = 0.01, group = grpSig,
-     tooltip = "Tighter = fewer but cleaner signals. 0.05 % is institutional default.")
+touchMode = input.string("Strict Rejection", "Band Interaction Mode",
+     options = ["Wick Touch", "Body Cross", "Strict Rejection"], group = grpSig,
+     tooltip = "How the signal candle must interact with the Bollinger Band:\n\n" +
+               "Wick Touch  - low (Buy) / high (Sell) pierces the band.\n\n" +
+               "Body Cross  - candle CLOSES beyond the band.\n\n" +
+               "Strict Rejection (recommended) - wick pierces the band AND " +
+               "close rejects back inside the band. Classic pin-bar pattern.")
+touchTolPct = input.float(0.0, "Band proximity tolerance (% of price)",
+     minval = 0.0, step = 0.01, group = grpSig,
+     tooltip = "Default 0 = candle must ACTUALLY touch the band. " +
+               "Set > 0 only if you want to accept near-misses.")
 oneTradePerDay = input.bool(false, "Only one signal per trading day", group = grpSig,
      tooltip = "OFF = show every signal that triggers. ON = enforce the 100 Days Challenge rule of one trade per day.")
 
@@ -124,9 +132,31 @@ lowerWick = math.min(close, open) - low
 isBullCdl = close > open
 isBearCdl = close < open
 
+// =================== BAND-INTERACTION LOGIC ==========================
+// This is the FIX for the previous defect where signals fired without
+// the candle actually touching/crossing the band.
 tolerance = close * touchTolPct / 100.0
-nearLowerBand = useTouch ? (low  <= lower + tolerance) : true
-nearUpperBand = useTouch ? (high >= upper - tolerance) : true
+
+// --- Lower band (for BUY) ---
+// Wick must pierce / touch the lower band
+wickTouchedLower = low <= lower + tolerance
+// Body close must print BELOW the lower band
+bodyCrossedLower = close <= lower + tolerance
+// Strict pin-bar rejection: wick pierced, but close came back ABOVE the band
+strictRejectLower = wickTouchedLower and close > lower
+
+nearLowerBand = touchMode == "Wick Touch"  ? wickTouchedLower :
+                touchMode == "Body Cross"  ? bodyCrossedLower :
+                                             strictRejectLower
+
+// --- Upper band (for SELL) ---
+wickTouchedUpper = high >= upper - tolerance
+bodyCrossedUpper = close >= upper - tolerance
+strictRejectUpper = wickTouchedUpper and close < upper
+
+nearUpperBand = touchMode == "Wick Touch"  ? wickTouchedUpper :
+                touchMode == "Body Cross"  ? bodyCrossedUpper :
+                                             strictRejectUpper
 
 priorBody1 = math.abs(close[1] - open[1])
 priorMid1  = (open[1] + close[1]) / 2.0
@@ -348,26 +378,26 @@ var table infoTbl = table.new(position.top_right, 2, 8,
 if showInfoBox and barstate.islast
     table.cell(infoTbl, 0, 0, "BB+Candle 100D v2",       text_color = color.white,  bgcolor = color.new(#00897B, 30), text_size = size.small)
     table.cell(infoTbl, 1, 0, syminfo.ticker,             text_color = color.white,  bgcolor = color.new(#00897B, 30), text_size = size.small)
-    table.cell(infoTbl, 0, 1, "Timeframe",                text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 1, timeframe.period,           text_color = color.white,  text_size = size.small)
-    table.cell(infoTbl, 0, 2, "BB U / B / L",             text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 2,
+    table.cell(infoTbl, 0, 1, "Touch Mode",               text_color = color.silver, text_size = size.small)
+    table.cell(infoTbl, 1, 1, touchMode,                  text_color = color.aqua,   text_size = size.small)
+    table.cell(infoTbl, 0, 2, "Timeframe",                text_color = color.silver, text_size = size.small)
+    table.cell(infoTbl, 1, 2, timeframe.period,           text_color = color.white,  text_size = size.small)
+    table.cell(infoTbl, 0, 3, "BB U / B / L",             text_color = color.silver, text_size = size.small)
+    table.cell(infoTbl, 1, 3,
          str.tostring(upper, format.mintick) + " / " +
          str.tostring(basis, format.mintick) + " / " +
          str.tostring(lower, format.mintick),             text_color = color.white,  text_size = size.small)
-    table.cell(infoTbl, 0, 3, "RSI(" + str.tostring(rsiLen) + ")", text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 3, str.tostring(rsiVal, "#.#"),         text_color = rsiVal > 70 ? color.red : rsiVal < 30 ? color.lime : color.white, text_size = size.small)
-    table.cell(infoTbl, 0, 4, "HTF EMA(" + str.tostring(htfEMALen) + " " + htfTF + ")", text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 4, (htfRising ? "UP" : htfFalling ? "DOWN" : "FLAT"),
+    table.cell(infoTbl, 0, 4, "RSI(" + str.tostring(rsiLen) + ")", text_color = color.silver, text_size = size.small)
+    table.cell(infoTbl, 1, 4, str.tostring(rsiVal, "#.#"),         text_color = rsiVal > 70 ? color.red : rsiVal < 30 ? color.lime : color.white, text_size = size.small)
+    table.cell(infoTbl, 0, 5, "HTF EMA(" + str.tostring(htfEMALen) + " " + htfTF + ")", text_color = color.silver, text_size = size.small)
+    table.cell(infoTbl, 1, 5, (htfRising ? "UP" : htfFalling ? "DOWN" : "FLAT"),
          text_color = htfRising ? color.lime : htfFalling ? color.red : color.yellow, text_size = size.small)
-    table.cell(infoTbl, 0, 5, "Vol vs avg",               text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 5, str.tostring(volume / volSMA, "#.##") + "x",
+    table.cell(infoTbl, 0, 6, "Vol vs avg",               text_color = color.silver, text_size = size.small)
+    table.cell(infoTbl, 1, 6, str.tostring(volume / volSMA, "#.##") + "x",
          text_color = volume >= volSMA * volMult ? color.lime : color.gray, text_size = size.small)
-    table.cell(infoTbl, 0, 6, "Range / ATR",              text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 6, str.tostring(range1 / atrVal, "#.##") + "x",
+    table.cell(infoTbl, 0, 7, "Range / ATR",              text_color = color.silver, text_size = size.small)
+    table.cell(infoTbl, 1, 7, str.tostring(range1 / atrVal, "#.##") + "x",
          text_color = range1 >= atrVal * atrMult ? color.lime : color.gray, text_size = size.small)
-    table.cell(infoTbl, 0, 7, "Last Close",               text_color = color.silver, text_size = size.small)
-    table.cell(infoTbl, 1, 7, str.tostring(close, format.mintick), text_color = color.yellow, text_size = size.small)
 
 // =====================================================================
 //  USAGE NOTES (Senior Trader Recommendations)
