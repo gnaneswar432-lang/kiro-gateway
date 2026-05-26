@@ -1,0 +1,308 @@
+//@version=5
+// =============================================================================
+// Smart Market Analyzer — STRATEGY (Backtestable)
+// -----------------------------------------------------------------------------
+// Same analysis engine as the indicator (structure + zones + patterns +
+// breakouts), wired into TradingView's strategy tester with:
+//   • Risk-based position sizing (% equity risked per trade)
+//   • ATR stop-loss + 2 take-profits (TP1 closes a configurable %)
+//   • Optional break-even after TP1 and ATR trailing stop
+//   • Long / Short / Both, with signal-source toggles
+//   • Backtest date range + session filter + trade cooldown
+//   • Live stats dashboard (PF, win-rate, expectancy, drawdown, etc.)
+// =============================================================================
+
+strategy("Smart Market Analyzer [Strategy]",
+  shorttitle      = "SMA-PZE-S",
+  overlay         = true,
+  initial_capital = 10000,
+  default_qty_type= strategy.cash,           // overridden by risk-based sizing
+  default_qty_value = 0,
+  pyramiding      = 0,
+  commission_type = strategy.commission.percent,
+  commission_value= 0.05,
+  slippage        = 2,
+  process_orders_on_close = true,
+  calc_on_every_tick      = false,
+  max_lines_count = 500, max_labels_count = 500, max_boxes_count = 500)
+
+// ─── INPUTS ──────────────────────────────────────────────────────────────────
+grpStruct = "Market Structure"
+pivotLen      = input.int(10, "Pivot Length", minval=2, group=grpStruct)
+
+grpZones = "Support / Resistance Zones"
+zoneLookback = input.int(300, "Zone Lookback (bars)", minval=50, group=grpZones)
+zoneMerge    = input.float(0.3, "Zone Merge (ATR x)", step=0.1, group=grpZones)
+maxZones     = input.int(6,   "Max zones per side", 1, 10, group=grpZones)
+showZones    = input.bool(true, "Show zones", group=grpZones)
+
+grpPatt = "Chart Patterns"
+showDouble    = input.bool(true, "Double Top / Bottom",  group=grpPatt)
+showTriangle  = input.bool(true, "Triangles",            group=grpPatt)
+doubleTol     = input.float(0.5, "Double T/B tol (ATR x)", step=0.1, group=grpPatt)
+
+grpBreak = "Breakouts"
+useVolume = input.bool(true, "Require volume confirmation", group=grpBreak)
+volMult   = input.float(1.5, "Volume > N x avg",  step=0.1, group=grpBreak)
+breakBuf  = input.float(0.1, "Breakout buffer (ATR x)", step=0.05, group=grpBreak)
+
+grpSig = "Signal Sources"
+useBrkSig = input.bool(true,  "Trade Zone Breakouts", group=grpSig)
+usePatSig = input.bool(true,  "Trade Pattern Signals", group=grpSig)
+tradeDir  = input.string("Both", "Trade Direction",
+              options=["Long Only","Short Only","Both"], group=grpSig)
+
+grpRisk = "Risk & Exit"
+atrLen      = input.int(14,  "ATR Length",            group=grpRisk)
+slMult      = input.float(1.5,"Stop-Loss (ATR x)",    step=0.1, group=grpRisk)
+tp1RR       = input.float(1.5,"TP1 Risk:Reward",      step=0.1, group=grpRisk)
+tp2RR       = input.float(3.0,"TP2 Risk:Reward",      step=0.1, group=grpRisk)
+tp1Pct      = input.float(50, "TP1 close %",          1, 99, step=1, group=grpRisk)
+riskPct     = input.float(1.0,"Risk per trade (% equity)", 0.1, 10, step=0.1, group=grpRisk)
+useBE       = input.bool(true,"Move SL to break-even after TP1", group=grpRisk)
+useTrail    = input.bool(false,"Use ATR trailing stop after TP1", group=grpRisk)
+trailMult   = input.float(2.0,"Trail (ATR x)",        step=0.1, group=grpRisk)
+cooldownBars= input.int(3,   "Cooldown bars between trades", 0, 100, group=grpRisk)
+
+grpFilt = "Backtest Filters"
+useDate  = input.bool(true,  "Limit by date", group=grpFilt)
+fromDate = input.time(timestamp("2023-01-01 00:00"), "From", group=grpFilt)
+toDate   = input.time(timestamp("2099-01-01 00:00"), "To",   group=grpFilt)
+useSess  = input.bool(false, "Limit by session", group=grpFilt)
+sessStr  = input.session("0930-1600", "Session", group=grpFilt)
+
+grpUI = "Dashboard"
+showDash = input.bool(true, "Show stats dashboard", group=grpUI)
+dashPos  = input.string("top_right", "Position",
+   options=["top_right","top_left","bottom_right","bottom_left"], group=grpUI)
+
+// ─── CORE CALCS ──────────────────────────────────────────────────────────────
+atr   = ta.atr(atrLen)
+volMA = ta.sma(volume, 20)
+
+ph = ta.pivothigh(high, pivotLen, pivotLen)
+pl = ta.pivotlow (low,  pivotLen, pivotLen)
+
+var float lastPH = na, var float prevPH = na
+var float lastPL = na, var float prevPL = na
+var int   lastPHbar = na, var int prevPHbar = na
+var int   lastPLbar = na, var int prevPLbar = na
+
+if not na(ph)
+    prevPH := lastPH
+    prevPHbar := lastPHbar
+    lastPH := ph
+    lastPHbar := bar_index - pivotLen
+if not na(pl)
+    prevPL := lastPL
+    prevPLbar := lastPLbar
+    lastPL := pl
+    lastPLbar := bar_index - pivotLen
+
+// ─── ZONES (merged) ──────────────────────────────────────────────────────────
+var array<float> resLevels = array.new<float>()
+var array<float> supLevels = array.new<float>()
+var array<box>   resBoxes  = array.new<box>()
+var array<box>   supBoxes  = array.new<box>()
+
+f_addLevel(arr, lvl) =>
+    merged = false
+    for i = 0 to array.size(arr) - 1
+        if math.abs(array.get(arr, i) - lvl) < atr * zoneMerge
+            array.set(arr, i, (array.get(arr, i) + lvl) / 2.0)
+            merged := true
+            break
+    if not merged
+        array.push(arr, lvl)
+    if array.size(arr) > maxZones
+        array.shift(arr)
+
+if not na(ph)
+    f_addLevel(resLevels, ph)
+if not na(pl)
+    f_addLevel(supLevels, pl)
+
+if showZones and barstate.islast
+    for b in resBoxes
+        box.delete(b)
+    for b in supBoxes
+        box.delete(b)
+    array.clear(resBoxes)
+    array.clear(supBoxes)
+    for i = 0 to array.size(resLevels) - 1
+        lvl = array.get(resLevels, i)
+        array.push(resBoxes, box.new(bar_index - zoneLookback, lvl + atr*0.15,
+            bar_index + 20, lvl - atr*0.15,
+            border_color=color.new(color.red,60), bgcolor=color.new(color.red,85)))
+    for i = 0 to array.size(supLevels) - 1
+        lvl = array.get(supLevels, i)
+        array.push(supBoxes, box.new(bar_index - zoneLookback, lvl + atr*0.15,
+            bar_index + 20, lvl - atr*0.15,
+            border_color=color.new(color.green,60), bgcolor=color.new(color.green,85)))
+
+f_nearest(arr, price, above) =>
+    float best = na
+    for i = 0 to array.size(arr) - 1
+        v = array.get(arr, i)
+        if above and v > price and (na(best) or v < best)
+            best := v
+        if not above and v < price and (na(best) or v > best)
+            best := v
+    best
+
+nearRes = f_nearest(resLevels, close, true)
+nearSup = f_nearest(supLevels, close, false)
+
+// ─── PATTERNS ────────────────────────────────────────────────────────────────
+doubleTop    = showDouble and not na(lastPH) and not na(prevPH)
+   and math.abs(lastPH - prevPH) < atr * doubleTol
+   and lastPHbar - prevPHbar > pivotLen
+   and low[1] < math.min(lastPH, prevPH) - atr * 0.2
+doubleBottom = showDouble and not na(lastPL) and not na(prevPL)
+   and math.abs(lastPL - prevPL) < atr * doubleTol
+   and lastPLbar - prevPLbar > pivotLen
+   and high[1] > math.max(lastPL, prevPL) + atr * 0.2
+
+triUp = showTriangle and not na(lastPH) and not na(prevPH) and not na(lastPL) and not na(prevPL)
+   and math.abs(lastPH - prevPH) < atr * 0.4 and lastPL > prevPL
+triDn = showTriangle and not na(lastPH) and not na(prevPH) and not na(lastPL) and not na(prevPL)
+   and math.abs(lastPL - prevPL) < atr * 0.4 and lastPH < prevPH
+
+// ─── BREAKOUTS ───────────────────────────────────────────────────────────────
+volOK = not useVolume or volume > volMA * volMult
+brkUp = not na(nearRes) and close > nearRes + atr*breakBuf
+   and close[1] <= nearRes + atr*breakBuf and volOK
+brkDn = not na(nearSup) and close < nearSup - atr*breakBuf
+   and close[1] >= nearSup - atr*breakBuf and volOK
+
+// ─── SIGNAL FUSION ───────────────────────────────────────────────────────────
+allowLong  = tradeDir != "Short Only"
+allowShort = tradeDir != "Long Only"
+
+longSig  = allowLong  and ((useBrkSig and brkUp) or (usePatSig and (doubleBottom or triUp)))
+shortSig = allowShort and ((useBrkSig and brkDn) or (usePatSig and (doubleTop    or triDn)))
+
+// ─── FILTERS ─────────────────────────────────────────────────────────────────
+inDate = not useDate or (time >= fromDate and time <= toDate)
+inSess = not useSess or not na(time(timeframe.period, sessStr))
+var int lastExitBar = -10000
+cooldownOK = bar_index - lastExitBar >= cooldownBars
+canTrade = inDate and inSess and cooldownOK
+
+// ─── POSITION SIZING (risk-based) ────────────────────────────────────────────
+slDist = atr * slMult
+riskCash = strategy.equity * (riskPct / 100.0)
+qty = slDist > 0 ? riskCash / slDist : 0.0
+
+// ─── ENTRIES ─────────────────────────────────────────────────────────────────
+var float entryPx = na
+var float slPx    = na
+var float tp1Px   = na
+var float tp2Px   = na
+var bool  tp1Hit  = false
+
+if canTrade and longSig and strategy.position_size == 0 and qty > 0
+    entryPx := close
+    slPx    := close - slDist
+    tp1Px   := close + slDist * tp1RR
+    tp2Px   := close + slDist * tp2RR
+    tp1Hit  := false
+    strategy.entry("L", strategy.long, qty=qty)
+    strategy.exit("L-TP1", "L", qty_percent=tp1Pct, limit=tp1Px, stop=slPx)
+    strategy.exit("L-TP2", "L",                       limit=tp2Px, stop=slPx)
+
+if canTrade and shortSig and strategy.position_size == 0 and qty > 0
+    entryPx := close
+    slPx    := close + slDist
+    tp1Px   := close - slDist * tp1RR
+    tp2Px   := close - slDist * tp2RR
+    tp1Hit  := false
+    strategy.entry("S", strategy.short, qty=qty)
+    strategy.exit("S-TP1", "S", qty_percent=tp1Pct, limit=tp1Px, stop=slPx)
+    strategy.exit("S-TP2", "S",                       limit=tp2Px, stop=slPx)
+
+// ─── TP1-HIT MANAGEMENT (break-even / trailing) ──────────────────────────────
+inLong  = strategy.position_size > 0
+inShort = strategy.position_size < 0
+
+if inLong and not tp1Hit and high >= tp1Px
+    tp1Hit := true
+if inShort and not tp1Hit and low  <= tp1Px
+    tp1Hit := true
+
+if tp1Hit and useBE
+    if inLong
+        slPx := math.max(slPx, strategy.position_avg_price)
+    if inShort
+        slPx := math.min(slPx, strategy.position_avg_price)
+
+if tp1Hit and useTrail
+    if inLong
+        slPx := math.max(slPx, close - atr * trailMult)
+    if inShort
+        slPx := math.min(slPx, close + atr * trailMult)
+
+// re-issue exit so updated SL is honored
+if inLong and tp1Hit
+    strategy.exit("L-RUN", "L", limit=tp2Px, stop=slPx)
+if inShort and tp1Hit
+    strategy.exit("S-RUN", "S", limit=tp2Px, stop=slPx)
+
+// track exit bar for cooldown
+if strategy.position_size == 0 and (strategy.position_size[1] != 0)
+    lastExitBar := bar_index
+
+// ─── PLOTS ───────────────────────────────────────────────────────────────────
+plotshape(longSig  and strategy.position_size == 0, "Long Sig",  shape.triangleup,
+   location.belowbar, color.new(color.lime,0), text="L", textcolor=color.white, size=size.tiny)
+plotshape(shortSig and strategy.position_size == 0, "Short Sig", shape.triangledown,
+   location.abovebar, color.new(color.red,0),  text="S", textcolor=color.white, size=size.tiny)
+
+plot(strategy.position_size != 0 ? slPx  : na, "SL",  color.red,    style=plot.style_linebr)
+plot(strategy.position_size != 0 ? tp1Px : na, "TP1", color.green,  style=plot.style_linebr)
+plot(strategy.position_size != 0 ? tp2Px : na, "TP2", color.teal,   style=plot.style_linebr)
+
+// ─── DASHBOARD (live stats) ──────────────────────────────────────────────────
+var table dash = table.new(dashPos, 2, 11,
+   bgcolor=color.new(color.black,20), border_color=color.gray, border_width=1)
+
+f_row(r, k, v, c) =>
+    table.cell(dash, 0, r, k, text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, r, v, text_color=c,            text_size=size.small)
+
+if showDash and barstate.islast
+    nTrades  = strategy.closedtrades
+    wins     = strategy.wintrades
+    losses   = strategy.losstrades
+    winRate  = nTrades > 0 ? wins / nTrades * 100 : 0.0
+    pf       = strategy.grossloss != 0 ? strategy.grossprofit / math.abs(strategy.grossloss) : na
+    avgWin   = wins   > 0 ? strategy.grossprofit / wins   : 0.0
+    avgLoss  = losses > 0 ? math.abs(strategy.grossloss) / losses : 0.0
+    expect   = nTrades > 0 ? (wins/nTrades)*avgWin - (losses/nTrades)*avgLoss : 0.0
+    netPL    = strategy.netprofit
+    netPct   = strategy.initial_capital > 0 ? netPL / strategy.initial_capital * 100 : 0.0
+    mdd      = strategy.max_drawdown
+    mddPct   = strategy.initial_capital > 0 ? mdd / strategy.initial_capital * 100 : 0.0
+
+    netCol   = netPL >= 0 ? color.lime : color.red
+    pfCol    = na(pf) ? color.gray : pf >= 1.5 ? color.lime : pf >= 1 ? color.yellow : color.red
+    wrCol    = winRate >= 50 ? color.lime : winRate >= 40 ? color.yellow : color.red
+
+    table.cell(dash, 0, 0, "SMART STRATEGY",
+       text_color=color.white, bgcolor=color.new(color.blue,40))
+    table.cell(dash, 1, 0, syminfo.ticker + " · " + timeframe.period,
+       text_color=color.white, bgcolor=color.new(color.blue,40))
+    f_row(1,  "Net P/L",         str.tostring(netPL, format.mintick) + "  (" + str.tostring(netPct, "#.##") + "%)", netCol)
+    f_row(2,  "Profit Factor",   na(pf) ? "—" : str.tostring(pf, "#.##"),   pfCol)
+    f_row(3,  "Win Rate",        str.tostring(winRate, "#.##") + "%",       wrCol)
+    f_row(4,  "Trades (W / L)",  str.tostring(nTrades) + " (" + str.tostring(wins) + " / " + str.tostring(losses) + ")", color.white)
+    f_row(5,  "Expectancy",      str.tostring(expect, format.mintick),      expect >= 0 ? color.lime : color.red)
+    f_row(6,  "Avg Win / Loss",  str.tostring(avgWin, format.mintick) + " / " + str.tostring(avgLoss, format.mintick), color.aqua)
+    f_row(7,  "Max Drawdown",    str.tostring(mdd, format.mintick) + "  (" + str.tostring(mddPct, "#.##") + "%)", color.red)
+    f_row(8,  "Open Position",   strategy.position_size == 0 ? "Flat" :
+                                  strategy.position_size > 0 ? "LONG "  + str.tostring(strategy.position_size, "#.####") :
+                                                                "SHORT " + str.tostring(math.abs(strategy.position_size), "#.####"),
+             strategy.position_size > 0 ? color.lime : strategy.position_size < 0 ? color.red : color.gray)
+    f_row(9,  "Risk / Trade",    str.tostring(riskPct, "#.##") + "%   (qty " + str.tostring(qty, "#.####") + ")", color.yellow)
+    f_row(10, "ATR(" + str.tostring(atrLen) + ")",
+                                  str.tostring(atr, format.mintick),         color.aqua)
