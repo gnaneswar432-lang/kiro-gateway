@@ -1,0 +1,162 @@
+//@version=6
+// =====================================================================
+//  Nifty 50 - 100 Days Trading Challenge (Day 62)
+//  Strategy: Bollinger Band (20, 1.5) + ENGULFING Candlestick
+//
+//  RULES (filtered version):
+//   - BUY  : BULLISH ENGULFING candle forming in the LOWER band, where the
+//            current candle's body fully engulfs AND is bigger than the
+//            previous candle's body, AND the body occupies most of the
+//            candle's total range (no dojis / no long wicks).
+//   - SELL : BEARISH ENGULFING candle forming in the UPPER band, with
+//            the same body-dominance + solidity filters.
+//   - SL   : low of signal candle (Buy) / high of signal candle (Sell).
+//   - TP   : Risk:Reward = 1:2 minimum.
+//   - ONE trade per day, 5-minute, Nifty Futures, intraday only.
+// =====================================================================
+indicator("BB(20,1.5) + Engulfing - 100 Days Challenge",
+     shorttitle        = "BB+Engulf 100D",
+     overlay           = true,
+     max_labels_count  = 500,
+     max_lines_count   = 500)
+
+// ============================ INPUTS =================================
+bbLen   = input.int(20,    "BB Length",   minval = 1,   group = "Bollinger Band")
+bbMult  = input.float(1.5, "BB StdDev",   minval = 0.1, step = 0.1, group = "Bollinger Band")
+
+rrRatio = input.float(2.0, "Risk:Reward Ratio", minval = 1.0, step = 0.5,
+     group = "Risk Management",
+     tooltip = "Target = entry +/- (risk x this multiple). Default 2 = 1:2 R:R.")
+
+// --- Candle quality filters ---
+minBodyPct = input.float(0.60, "Min body % of total range",
+     minval = 0.30, maxval = 0.95, step = 0.05,
+     group  = "Candle Filter",
+     tooltip = "Body / (high-low). 0.60 = body must be at least 60% of the candle's full range. Eliminates dojis & long-wick pin-bar fakes.")
+
+bodyDomMult = input.float(1.0, "Body must be N x previous body",
+     minval = 1.0, maxval = 5.0, step = 0.1,
+     group  = "Candle Filter",
+     tooltip = "Engulfing candle's body must be at least this multiple of the previous candle's body. 1.0 = strictly larger. Raise to 1.2-1.5 for fewer, higher-conviction signals.")
+
+oneTradePerDay = input.bool(false, "Only one trade per day (challenge rule)",
+     group = "Trade Management")
+
+useSession = input.bool(true,         "Restrict to session", group = "Trade Management")
+sessionStr = input.session("0915-1500","Session (Exchange Time)", group = "Trade Management")
+
+// ====================== BOLLINGER BANDS ==============================
+basis = ta.sma(close, bbLen)
+dev   = bbMult * ta.stdev(close, bbLen)
+upper = basis + dev
+lower = basis - dev
+
+pUpper = plot(upper, "BB Upper", color = color.new(#000000, 0), linewidth = 2)
+pBasis = plot(basis, "BB Basis", color = color.new(#1E88E5, 0), linewidth = 1)
+pLower = plot(lower, "BB Lower", color = color.new(#00897B, 0), linewidth = 2)
+fill(pUpper, pLower, color = color.new(#1E88E5, 95), title = "BB Fill")
+
+// =================== ENGULFING + SOLID CANDLE LOGIC ==================
+prevBody  = math.abs(close[1] - open[1])
+curBody   = math.abs(close - open)
+curRange  = high - low
+
+// Body must dominate the candle (no dojis / no long wicks)
+solidCandle = curRange > 0 and (curBody / curRange) >= minBodyPct
+
+// Body must dominate the previous candle (engulfing power)
+bodyDominates = curBody >= prevBody * bodyDomMult
+
+// Bullish engulfing: prev bearish, current bullish, body engulfs prev body
+bullishEngulfing = close[1] < open[1] and close > open and close >= open[1] and open <= close[1] and bodyDominates and solidCandle
+
+// Bearish engulfing: prev bullish, current bearish, body engulfs prev body
+bearishEngulfing = close[1] > open[1] and close < open and close <= open[1] and open >= close[1] and bodyDominates and solidCandle
+
+// "Forming in the band" = wick has reached the band on the signal bar
+candleAtLowerBand = low  <= lower
+candleAtUpperBand = high >= upper
+
+inSession = useSession ? not na(time(timeframe.period, sessionStr)) : true
+
+rawBuy  = bullishEngulfing and candleAtLowerBand and inSession
+rawSell = bearishEngulfing and candleAtUpperBand and inSession
+
+// ============= ONE TRADE PER DAY (challenge rule) ====================
+var bool tradedToday = false
+if ta.change(time("D")) != 0
+    tradedToday := false
+
+canSignal = oneTradePerDay ? not tradedToday : true
+
+buySignal  = rawBuy  and canSignal
+sellSignal = rawSell and canSignal
+
+if buySignal or sellSignal
+    tradedToday := true
+
+// ====================== SL / TARGET (1:2 R:R) ========================
+var float entryPrice = 0.0
+var float slPrice    = 0.0
+var float tpPrice    = 0.0
+
+if buySignal
+    entryPrice := close
+    slPrice    := low
+    risk        = entryPrice - slPrice
+    tpPrice    := entryPrice + risk * rrRatio
+
+if sellSignal
+    entryPrice := close
+    slPrice    := high
+    risk        = slPrice - entryPrice
+    tpPrice    := entryPrice - risk * rrRatio
+
+// ============================ PLOTTING ===============================
+plotshape(buySignal,  title = "BUY",  style = shape.triangleup,
+     location  = location.belowbar, color = color.new(#00897B, 0),
+     size      = size.normal,       text  = "BUY",
+     textcolor = color.white)
+
+plotshape(sellSignal, title = "SELL", style = shape.triangledown,
+     location  = location.abovebar, color = color.new(#C62828, 0),
+     size      = size.normal,       text  = "SELL",
+     textcolor = color.white)
+
+// Big info label on the signal bar
+if buySignal or sellSignal
+    txt = (buySignal ? "BUY (Bull Engulfing)" : "SELL (Bear Engulfing)") + "\n" + "Entry: "  + str.tostring(entryPrice, format.mintick) + "\n" + "SL: "     + str.tostring(slPrice,    format.mintick) + "\n" + "TP (1:"   + str.tostring(rrRatio, "#.#") + "): " + str.tostring(tpPrice,   format.mintick)
+    label.new(bar_index, buySignal ? low : high, text = txt,
+         style     = buySignal ? label.style_label_up : label.style_label_down,
+         color     = buySignal ? color.new(#00897B, 0) : color.new(#C62828, 0),
+         textcolor = color.white,
+         size      = size.normal,
+         yloc      = buySignal ? yloc.belowbar : yloc.abovebar)
+
+// Persistent SL / Entry / Target lines for the day's trade
+var line slLine = na
+var line tpLine = na
+var line enLine = na
+
+if buySignal or sellSignal
+    line.delete(slLine)
+    line.delete(tpLine)
+    line.delete(enLine)
+    enLine := line.new(bar_index, entryPrice, bar_index + 60, entryPrice,
+         color = color.new(color.gray,    0), width = 1, style = line.style_dashed)
+    slLine := line.new(bar_index, slPrice,    bar_index + 60, slPrice,
+         color = color.new(#C62828, 0),       width = 2)
+    tpLine := line.new(bar_index, tpPrice,    bar_index + 60, tpPrice,
+         color = color.new(#00897B, 0),       width = 2)
+
+bgcolor(buySignal  ? color.new(#00897B, 85) : na, title = "Buy bg")
+bgcolor(sellSignal ? color.new(#C62828, 85) : na, title = "Sell bg")
+
+// ============================ ALERTS =================================
+alertcondition(buySignal,
+     title   = "BUY Signal",
+     message = "BUY (Bull Engulfing) at lower BB | Entry {{close}} | 100 Days Challenge")
+
+alertcondition(sellSignal,
+     title   = "SELL Signal",
+     message = "SELL (Bear Engulfing) at upper BB | Entry {{close}} | 100 Days Challenge")
