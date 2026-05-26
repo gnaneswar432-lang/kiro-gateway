@@ -1,18 +1,7 @@
-//@version=5
+//@version=6
 // =============================================================================
 // Smart Market Analyzer — Patterns, Zones, Breakouts & Entry/Exit Mapping
-// -----------------------------------------------------------------------------
-// What it does:
-//   1. Detects market structure (HH / HL / LH / LL) and overall trend bias.
-//   2. Auto-draws major Support / Resistance zones from swing pivots.
-//   3. Recognizes common chart patterns:
-//        - Double Top / Double Bottom
-//        - Higher-High / Lower-Low continuation
-//        - Range / Consolidation
-//        - Ascending / Descending triangle (via pivot slopes)
-//   4. Flags breakouts of major zones (with optional volume confirmation).
-//   5. Maps Entry, Stop-Loss, and 2 Take-Profit levels using ATR + R:R.
-//   6. Dashboard + alerts for every signal.
+// Pine Script v6
 // =============================================================================
 
 indicator("Smart Market Analyzer [Patterns + Zones + Entry/Exit]",
@@ -54,26 +43,30 @@ dashPos  = input.string("top_right", "Position",
    options=["top_right","top_left","bottom_right","bottom_left"], group=grpUI)
 
 // ─── CORE CALCS ──────────────────────────────────────────────────────────────
-atr  = ta.atr(atrLen)
+atr   = ta.atr(atrLen)
 volMA = ta.sma(volume, 20)
 
 ph = ta.pivothigh(high, pivotLen, pivotLen)
 pl = ta.pivotlow (low,  pivotLen, pivotLen)
 
-var float lastPH = na, var float prevPH = na
-var float lastPL = na, var float prevPL = na
-var int   lastPHbar = na, var int prevPHbar = na
-var int   lastPLbar = na, var int prevPLbar = na
+var float lastPH    = na
+var float prevPH    = na
+var float lastPL    = na
+var float prevPL    = na
+var int   lastPHbar = na
+var int   prevPHbar = na
+var int   lastPLbar = na
+var int   prevPLbar = na
 
 if not na(ph)
-    prevPH := lastPH
+    prevPH    := lastPH
     prevPHbar := lastPHbar
-    lastPH := ph
+    lastPH    := ph
     lastPHbar := bar_index - pivotLen
 if not na(pl)
-    prevPL := lastPL
+    prevPL    := lastPL
     prevPLbar := lastPLbar
-    lastPL := pl
+    lastPL    := pl
     lastPLbar := bar_index - pivotLen
 
 // ─── MARKET STRUCTURE ────────────────────────────────────────────────────────
@@ -82,18 +75,16 @@ isLH = not na(lastPH) and not na(prevPH) and lastPH < prevPH
 isHL = not na(lastPL) and not na(prevPL) and lastPL > prevPL
 isLL = not na(lastPL) and not na(prevPL) and lastPL < prevPL
 
-trendBias = isHH and isHL ? "Uptrend" :
-            isLH and isLL ? "Downtrend" :
-            (isHH and isLL) or (isLH and isHL) ? "Choppy / Range" : "Neutral"
+trendBias = isHH and isHL ? "Uptrend" : isLH and isLL ? "Downtrend" : (isHH and isLL) or (isLH and isHL) ? "Choppy / Range" : "Neutral"
 
 if showStructure and not na(ph)
-    txt = isHH ? "HH" : isLH ? "LH" : "H"
-    label.new(bar_index - pivotLen, ph, txt, style=label.style_label_down,
+    txtH = isHH ? "HH" : isLH ? "LH" : "H"
+    label.new(bar_index - pivotLen, ph, txtH, style=label.style_label_down,
        color=isHH ? color.new(color.green,40) : color.new(color.red,40),
        textcolor=color.white, size=size.tiny)
 if showStructure and not na(pl)
-    txt = isHL ? "HL" : isLL ? "LL" : "L"
-    label.new(bar_index - pivotLen, pl, txt, style=label.style_label_up,
+    txtL = isHL ? "HL" : isLL ? "LL" : "L"
+    label.new(bar_index - pivotLen, pl, txtL, style=label.style_label_up,
        color=isHL ? color.new(color.green,40) : color.new(color.red,40),
        textcolor=color.white, size=size.tiny)
 
@@ -103,44 +94,43 @@ var array<float> supLevels = array.new<float>()
 var array<box>   resBoxes  = array.new<box>()
 var array<box>   supBoxes  = array.new<box>()
 
-f_addLevel(arr, lvl) =>
+f_addLevel(array<float> arr, float lvl, float a, float merge, int maxN) =>
     merged = false
     for i = 0 to array.size(arr) - 1
-        if math.abs(array.get(arr, i) - lvl) < atr * zoneMerge
+        if math.abs(array.get(arr, i) - lvl) < a * merge
             array.set(arr, i, (array.get(arr, i) + lvl) / 2.0)
             merged := true
             break
     if not merged
         array.push(arr, lvl)
-    if array.size(arr) > maxZones
+    if array.size(arr) > maxN
         array.shift(arr)
+    0
 
 if not na(ph)
-    f_addLevel(resLevels, ph)
+    f_addLevel(resLevels, ph, atr, zoneMerge, maxZones)
 if not na(pl)
-    f_addLevel(supLevels, pl)
+    f_addLevel(supLevels, pl, atr, zoneMerge, maxZones)
 
-// redraw zone boxes each bar (cheap because count is capped)
 if showZones and barstate.islast
-    for b in resBoxes
-        box.delete(b)
-    for b in supBoxes
-        box.delete(b)
+    for b1 in resBoxes
+        box.delete(b1)
+    for b2 in supBoxes
+        box.delete(b2)
     array.clear(resBoxes)
     array.clear(supBoxes)
     for i = 0 to array.size(resLevels) - 1
         lvl = array.get(resLevels, i)
-        b = box.new(bar_index - zoneLookback, lvl + atr*0.15, bar_index + 20, lvl - atr*0.15,
+        nb = box.new(bar_index - zoneLookback, lvl + atr*0.15, bar_index + 20, lvl - atr*0.15,
             border_color=color.new(color.red,60), bgcolor=color.new(color.red,85))
-        array.push(resBoxes, b)
+        array.push(resBoxes, nb)
     for i = 0 to array.size(supLevels) - 1
         lvl = array.get(supLevels, i)
-        b = box.new(bar_index - zoneLookback, lvl + atr*0.15, bar_index + 20, lvl - atr*0.15,
+        nb = box.new(bar_index - zoneLookback, lvl + atr*0.15, bar_index + 20, lvl - atr*0.15,
             border_color=color.new(color.green,60), bgcolor=color.new(color.green,85))
-        array.push(supBoxes, b)
+        array.push(supBoxes, nb)
 
-// nearest zone references
-f_nearest(arr, price, above) =>
+f_nearest(array<float> arr, float price, bool above) =>
     float best = na
     for i = 0 to array.size(arr) - 1
         v = array.get(arr, i)
@@ -156,38 +146,17 @@ nearSup = f_nearest(supLevels, close, false)
 // ─── CHART PATTERN DETECTION ─────────────────────────────────────────────────
 var string activePattern = "None"
 
-// Double Top / Bottom: two recent highs (or lows) within tolerance
-doubleTop    = showDouble and not na(lastPH) and not na(prevPH)
-   and math.abs(lastPH - prevPH) < atr * doubleTol
-   and lastPHbar - prevPHbar > pivotLen
-   and low[1] < math.min(lastPH, prevPH) - atr * 0.2
-doubleBottom = showDouble and not na(lastPL) and not na(prevPL)
-   and math.abs(lastPL - prevPL) < atr * doubleTol
-   and lastPLbar - prevPLbar > pivotLen
-   and high[1] > math.max(lastPL, prevPL) + atr * 0.2
+doubleTop    = showDouble and not na(lastPH) and not na(prevPH) and math.abs(lastPH - prevPH) < atr * doubleTol and lastPHbar - prevPHbar > pivotLen and low[1] < math.min(lastPH, prevPH) - atr * 0.2
+doubleBottom = showDouble and not na(lastPL) and not na(prevPL) and math.abs(lastPL - prevPL) < atr * doubleTol and lastPLbar - prevPLbar > pivotLen and high[1] > math.max(lastPL, prevPL) + atr * 0.2
 
-// Triangles via pivot slopes
-triUp = showTriangle and not na(lastPH) and not na(prevPH) and not na(lastPL) and not na(prevPL)
-   and math.abs(lastPH - prevPH) < atr * 0.4 and lastPL > prevPL          // flat highs, rising lows
-triDn = showTriangle and not na(lastPH) and not na(prevPH) and not na(lastPL) and not na(prevPL)
-   and math.abs(lastPL - prevPL) < atr * 0.4 and lastPH < prevPH          // flat lows, falling highs
-triSym = showTriangle and not na(lastPH) and not na(prevPH) and not na(lastPL) and not na(prevPL)
-   and lastPH < prevPH and lastPL > prevPL                                 // contracting
+triUp  = showTriangle and not na(lastPH) and not na(prevPH) and not na(lastPL) and not na(prevPL) and math.abs(lastPH - prevPH) < atr * 0.4 and lastPL > prevPL
+triDn  = showTriangle and not na(lastPH) and not na(prevPH) and not na(lastPL) and not na(prevPL) and math.abs(lastPL - prevPL) < atr * 0.4 and lastPH < prevPH
+triSym = showTriangle and not na(lastPH) and not na(prevPH) and not na(lastPL) and not na(prevPL) and lastPH < prevPH and lastPL > prevPL
 
-// Range
-isRange = showRange and not na(nearRes) and not na(nearSup)
-   and (nearRes - nearSup) < atr * 4
-   and ta.highest(high, 30) - ta.lowest(low, 30) < atr * 5
+isRange = showRange and not na(nearRes) and not na(nearSup) and (nearRes - nearSup) < atr * 4 and ta.highest(high, 30) - ta.lowest(low, 30) < atr * 5
 
-activePattern := doubleTop    ? "Double Top (bearish)" :
-                 doubleBottom ? "Double Bottom (bullish)" :
-                 triUp        ? "Ascending Triangle (bullish)" :
-                 triDn        ? "Descending Triangle (bearish)" :
-                 triSym       ? "Symmetrical Triangle" :
-                 isRange      ? "Range / Consolidation" :
-                 trendBias
+activePattern := doubleTop ? "Double Top (bearish)" : doubleBottom ? "Double Bottom (bullish)" : triUp ? "Ascending Triangle (bullish)" : triDn ? "Descending Triangle (bearish)" : triSym ? "Symmetrical Triangle" : isRange ? "Range / Consolidation" : trendBias
 
-// pattern label
 if doubleTop
     label.new(bar_index, high + atr, "Double Top", color=color.new(color.red,20),
        textcolor=color.white, style=label.style_label_down, size=size.small)
@@ -197,23 +166,23 @@ if doubleBottom
 
 // ─── BREAKOUT DETECTION ──────────────────────────────────────────────────────
 volOK = not useVolume or volume > volMA * volMult
-brkUp = not na(nearRes) and close > nearRes + atr * breakBuf
-   and close[1] <= nearRes + atr * breakBuf and volOK
-brkDn = not na(nearSup) and close < nearSup - atr * breakBuf
-   and close[1] >= nearSup - atr * breakBuf and volOK
+brkUp = not na(nearRes) and close > nearRes + atr * breakBuf and close[1] <= nearRes + atr * breakBuf and volOK
+brkDn = not na(nearSup) and close < nearSup - atr * breakBuf and close[1] >= nearSup - atr * breakBuf and volOK
 
 plotshape(brkUp, "Bull Breakout", shape.triangleup, location.belowbar,
-   color.new(color.lime,0), text="BRK↑", textcolor=color.white, size=size.small)
+   color.new(color.lime,0), text="BRK", textcolor=color.white, size=size.small)
 plotshape(brkDn, "Bear Breakout", shape.triangledown, location.abovebar,
-   color.new(color.red,0), text="BRK↓", textcolor=color.white, size=size.small)
+   color.new(color.red,0), text="BRK", textcolor=color.white, size=size.small)
 
 // ─── ENTRY / EXIT MAPPING ────────────────────────────────────────────────────
 longSig  = brkUp or doubleBottom or triUp
 shortSig = brkDn or doubleTop    or triDn
 
-var float entryPx = na, var float slPx = na
-var float tp1Px = na, var float tp2Px = na
-var int   sigDir = 0      // 1 long, -1 short, 0 flat
+var float entryPx = na
+var float slPx    = na
+var float tp1Px   = na
+var float tp2Px   = na
+var int   sigDir  = 0
 
 if longSig
     entryPx := close
@@ -230,10 +199,10 @@ if shortSig
 
 if showTrade and (longSig or shortSig)
     col = sigDir == 1 ? color.lime : color.red
-    line.new(bar_index, entryPx, bar_index + 30, entryPx, color=col,           width=2, extend=extend.right)
-    line.new(bar_index, slPx,    bar_index + 30, slPx,    color=color.red,     style=line.style_dashed, extend=extend.right)
-    line.new(bar_index, tp1Px,   bar_index + 30, tp1Px,   color=color.green,   style=line.style_dashed, extend=extend.right)
-    line.new(bar_index, tp2Px,   bar_index + 30, tp2Px,   color=color.teal,    style=line.style_dashed, extend=extend.right)
+    line.new(bar_index, entryPx, bar_index + 30, entryPx, color=col, width=2, extend=extend.right)
+    line.new(bar_index, slPx,    bar_index + 30, slPx,    color=color.red,   style=line.style_dashed, extend=extend.right)
+    line.new(bar_index, tp1Px,   bar_index + 30, tp1Px,   color=color.green, style=line.style_dashed, extend=extend.right)
+    line.new(bar_index, tp2Px,   bar_index + 30, tp2Px,   color=color.teal,  style=line.style_dashed, extend=extend.right)
     label.new(bar_index, entryPx, "ENTRY " + str.tostring(entryPx, format.mintick),
        color=col, textcolor=color.white, style=label.style_label_left, size=size.small)
     label.new(bar_index, slPx,  "SL "  + str.tostring(slPx,  format.mintick),
@@ -255,24 +224,22 @@ alertcondition(shortSig,     "SHORT Setup",       "Short entry mapped — see SL
 var table dash = table.new(dashPos, 2, 7,
    bgcolor=color.new(color.black,20), border_color=color.gray, border_width=1)
 
-f_row(r, k, v, c) =>
-    table.cell(dash, 0, r, k, text_color=color.silver, text_size=size.small)
-    table.cell(dash, 1, r, v, text_color=c,            text_size=size.small)
+f_row(table t, int r, string k, string v, color c) =>
+    table.cell(t, 0, r, k, text_color=color.silver, text_size=size.small)
+    table.cell(t, 1, r, v, text_color=c,            text_size=size.small)
+    0
 
 if showDash and barstate.islast
     biasCol  = trendBias == "Uptrend" ? color.lime : trendBias == "Downtrend" ? color.red : color.yellow
-    pattCol  = str.contains(activePattern, "bullish") ? color.lime :
-               str.contains(activePattern, "bearish") ? color.red  : color.yellow
+    pattCol  = str.contains(activePattern, "bullish") ? color.lime : str.contains(activePattern, "bearish") ? color.red  : color.yellow
     sigTxt   = sigDir == 1 ? "LONG" : sigDir == -1 ? "SHORT" : "—"
     sigCol   = sigDir == 1 ? color.lime : sigDir == -1 ? color.red : color.gray
 
     table.cell(dash, 0, 0, "SMART MARKET ANALYZER", text_color=color.white, bgcolor=color.new(color.blue,40))
-    table.cell(dash, 1, 0, syminfo.ticker + " · " + timeframe.period,
-       text_color=color.white, bgcolor=color.new(color.blue,40))
-    f_row(1, "Trend Bias",     trendBias,       biasCol)
-    f_row(2, "Pattern",        activePattern,   pattCol)
-    f_row(3, "Nearest Resist", na(nearRes) ? "—" : str.tostring(nearRes, format.mintick), color.red)
-    f_row(4, "Nearest Support",na(nearSup) ? "—" : str.tostring(nearSup, format.mintick), color.green)
-    f_row(5, "Active Signal",  sigTxt,          sigCol)
-    f_row(6, "ATR(" + str.tostring(atrLen) + ")",
-                                str.tostring(atr, format.mintick), color.aqua)
+    table.cell(dash, 1, 0, syminfo.ticker + " · " + timeframe.period, text_color=color.white, bgcolor=color.new(color.blue,40))
+    f_row(dash, 1, "Trend Bias",      trendBias,       biasCol)
+    f_row(dash, 2, "Pattern",         activePattern,   pattCol)
+    f_row(dash, 3, "Nearest Resist",  na(nearRes) ? "—" : str.tostring(nearRes, format.mintick), color.red)
+    f_row(dash, 4, "Nearest Support", na(nearSup) ? "—" : str.tostring(nearSup, format.mintick), color.green)
+    f_row(dash, 5, "Active Signal",   sigTxt,          sigCol)
+    f_row(dash, 6, "ATR(" + str.tostring(atrLen) + ")", str.tostring(atr, format.mintick), color.aqua)
