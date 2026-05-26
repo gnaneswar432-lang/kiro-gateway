@@ -103,11 +103,13 @@ var array<box>   supBoxes  = array.new<box>()
 
 f_addLevel(array<float> arr, float lvl, float a, float merge, int maxN) =>
     merged = false
-    for i = 0 to array.size(arr) - 1
-        if math.abs(array.get(arr, i) - lvl) < a * merge
-            array.set(arr, i, (array.get(arr, i) + lvl) / 2.0)
-            merged := true
-            break
+    n = array.size(arr)
+    if n > 0
+        for i = 0 to n - 1
+            if math.abs(array.get(arr, i) - lvl) < a * merge
+                array.set(arr, i, (array.get(arr, i) + lvl) / 2.0)
+                merged := true
+                break
     if not merged
         array.push(arr, lvl)
     if array.size(arr) > maxN
@@ -126,25 +128,29 @@ if showZones and barstate.islast
         box.delete(b2)
     array.clear(resBoxes)
     array.clear(supBoxes)
-    for i = 0 to array.size(resLevels) - 1
-        lvl = array.get(resLevels, i)
-        array.push(resBoxes, box.new(bar_index - zoneLookback, lvl + atr*0.15,
-            bar_index + 20, lvl - atr*0.15,
-            border_color=color.new(color.red,60), bgcolor=color.new(color.red,85)))
-    for i = 0 to array.size(supLevels) - 1
-        lvl = array.get(supLevels, i)
-        array.push(supBoxes, box.new(bar_index - zoneLookback, lvl + atr*0.15,
-            bar_index + 20, lvl - atr*0.15,
-            border_color=color.new(color.green,60), bgcolor=color.new(color.green,85)))
+    if array.size(resLevels) > 0
+        for i = 0 to array.size(resLevels) - 1
+            lvl = array.get(resLevels, i)
+            array.push(resBoxes, box.new(bar_index - zoneLookback, lvl + atr*0.15,
+                bar_index + 20, lvl - atr*0.15,
+                border_color=color.new(color.red,60), bgcolor=color.new(color.red,85)))
+    if array.size(supLevels) > 0
+        for i = 0 to array.size(supLevels) - 1
+            lvl = array.get(supLevels, i)
+            array.push(supBoxes, box.new(bar_index - zoneLookback, lvl + atr*0.15,
+                bar_index + 20, lvl - atr*0.15,
+                border_color=color.new(color.green,60), bgcolor=color.new(color.green,85)))
 
 f_nearest(array<float> arr, float price, bool above) =>
     float best = na
-    for i = 0 to array.size(arr) - 1
-        v = array.get(arr, i)
-        if above and v > price and (na(best) or v < best)
-            best := v
-        if not above and v < price and (na(best) or v > best)
-            best := v
+    n = array.size(arr)
+    if n > 0
+        for i = 0 to n - 1
+            v = array.get(arr, i)
+            if above and v > price and (na(best) or v < best)
+                best := v
+            if not above and v < price and (na(best) or v > best)
+                best := v
     best
 
 nearRes = f_nearest(resLevels, close, true)
