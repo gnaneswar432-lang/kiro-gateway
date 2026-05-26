@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Lead Generation AI Automation - Complete Step-by-Step Guide</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm;
+    @bottom-center { content: "Page " counter(page) " of " counter(pages); color: #888; font-size: 9pt; }
+    @top-right { content: "Lead Generation AI Automation Guide"; color: #888; font-size: 9pt; }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Helvetica', 'Arial', sans-serif; color: #1f2937; line-height: 1.65; font-size: 11pt; background: white; }
+
+
+  /* Cover */
+  .cover { page-break-after: always; text-align: center; padding-top: 70mm; }
+  .cover h1 { font-size: 32pt; color: #4f46e5; margin-bottom: 10px; line-height: 1.2; }
+  .cover h2 { font-size: 16pt; color: #6366f1; font-weight: normal; margin-bottom: 30px; }
+  .cover .badge { display: inline-block; background: #6366f1; color: white; padding: 8px 22px; border-radius: 20px; font-size: 11pt; margin-bottom: 20px; }
+  .cover p { color: #475569; max-width: 420px; margin: 15px auto; font-size: 11.5pt; }
+  .cover .tools-used { margin-top: 40px; padding: 20px; background: #f0f4ff; border-radius: 10px; display: inline-block; }
+  .cover .tools-used h4 { color: #4338ca; margin-bottom: 8px; }
+  .cover .tools-used span { display: inline-block; background: white; border: 1px solid #c7d2fe; padding: 5px 14px; border-radius: 6px; margin: 4px; font-size: 10pt; }
+
+  /* TOC */
+  .toc { page-break-after: always; padding: 20px 0; }
+  .toc h2 { color: #4f46e5; font-size: 20pt; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 3px solid #6366f1; }
+  .toc ol { list-style: none; counter-reset: toc-section; }
+  .toc li { counter-increment: toc-section; padding: 10px 0; border-bottom: 1px dotted #cbd5e1; font-size: 11.5pt; }
+  .toc li::before { content: counter(toc-section) ". "; color: #6366f1; font-weight: bold; margin-right: 8px; }
+
+
+  /* Sections */
+  h1.section-title { color: #4f46e5; font-size: 20pt; margin: 25px 0 10px 0; padding-bottom: 8px; border-bottom: 3px solid #6366f1; page-break-after: avoid; page-break-before: always; }
+  h2 { color: #312e81; font-size: 15pt; margin: 22px 0 10px 0; page-break-after: avoid; }
+  h3 { color: #4338ca; font-size: 12.5pt; margin: 15px 0 8px 0; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .subtitle { color: #64748b; font-style: italic; margin-bottom: 18px; }
+
+  /* Flow */
+  .flow { background: #eef2ff; padding: 18px; border-radius: 8px; text-align: center; margin: 18px 0; page-break-inside: avoid; }
+  .flow-box { display: inline-block; background: #6366f1; color: white; padding: 10px 16px; border-radius: 8px; font-weight: bold; margin: 4px; font-size: 9.5pt; }
+  .flow-box.trigger { background: #0ea5e9; }
+  .flow-box.ai { background: #f59e0b; }
+  .flow-box.action { background: #10b981; }
+  .flow-box.output { background: #8b5cf6; }
+  .arrow { color: #6366f1; font-size: 14pt; margin: 0 4px; font-weight: bold; }
+
+  /* Steps */
+  .step { display: table; width: 100%; background: #f8fafc; border-left: 4px solid #6366f1; padding: 14px; margin-bottom: 12px; border-radius: 6px; page-break-inside: avoid; }
+  .step-num-cell { display: table-cell; width: 48px; vertical-align: top; }
+  .step-num { background: #6366f1; color: white; width: 34px; height: 34px; border-radius: 50%; text-align: center; line-height: 34px; font-weight: bold; font-size: 10.5pt; }
+  .step-content { display: table-cell; vertical-align: top; padding-left: 12px; }
+  .step-content h4 { color: #4338ca; margin-bottom: 5px; font-size: 11.5pt; }
+  .step-content p { color: #475569; font-size: 10.5pt; margin-bottom: 6px; }
+
+
+  /* Cards & Boxes */
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #6366f1; border-radius: 6px; padding: 14px 16px; margin-bottom: 12px; page-break-inside: avoid; }
+  .card h3 { margin-top: 0; }
+  .highlight { background: #eef2ff; border-left: 4px solid #6366f1; padding: 14px; border-radius: 6px; margin: 14px 0; page-break-inside: avoid; }
+  .highlight strong { color: #4338ca; }
+  .warning { background: #fef2f2; border-left: 4px solid #ef4444; padding: 14px; border-radius: 6px; margin: 14px 0; page-break-inside: avoid; }
+  .warning strong { color: #b91c1c; }
+  .success { background: #ecfdf5; border-left: 4px solid #10b981; padding: 14px; border-radius: 6px; margin: 14px 0; page-break-inside: avoid; }
+  .success strong { color: #047857; }
+  .tip { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 14px; border-radius: 6px; margin: 14px 0; page-break-inside: avoid; }
+  .tip strong { color: #92400e; }
+
+  /* Code/Prompt block */
+  .prompt-box { background: #1e293b; color: #e2e8f0; padding: 14px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 9.5pt; margin: 12px 0; white-space: pre-wrap; page-break-inside: avoid; }
+  .prompt-label { display: inline-block; background: #f59e0b; color: #1e293b; padding: 2px 10px; border-radius: 4px; font-size: 8.5pt; font-weight: bold; margin-bottom: 8px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; page-break-inside: avoid; }
+  th, td { padding: 9px; text-align: left; border: 1px solid #e2e8f0; font-size: 10pt; }
+  th { background: #6366f1; color: white; font-weight: 600; }
+  tr:nth-child(even) td { background: #f8fafc; }
+
+  /* Lists */
+  ul.bullet { padding-left: 20px; margin: 10px 0; }
+  ul.bullet li { margin-bottom: 5px; color: #475569; font-size: 10.5pt; }
+
+  /* Screenshot placeholder */
+  .screenshot { background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 30px; text-align: center; margin: 14px 0; color: #64748b; font-size: 10pt; page-break-inside: avoid; }
+  .screenshot strong { display: block; color: #475569; margin-bottom: 5px; }
+
+  /* Checklist */
+  .checklist { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px; margin: 14px 0; page-break-inside: avoid; }
+  .checklist h4 { color: #4338ca; margin-bottom: 10px; }
+  .check-item { padding: 6px 0; padding-left: 24px; position: relative; font-size: 10.5pt; color: #475569; }
+  .check-item::before { content: "[ ]"; position: absolute; left: 0; color: #6366f1; font-weight: bold; }
+
+  /* Footer */
+  .footer-page { page-break-before: always; text-align: center; padding-top: 60mm; }
+  .footer-page h2 { color: #4f46e5; font-size: 22pt; margin-bottom: 20px; }
+  .footer-page p { color: #475569; max-width: 420px; margin: 10px auto; font-size: 11pt; }
+</style>
+</head>
+<body>
+
+
+<!-- COVER PAGE -->
+<div class="cover">
+  <span class="badge">Step-by-Step Build Guide · For Non-Tech People</span>
+  <h1>Lead Generation<br>AI Automation</h1>
+  <h2>Build It From Scratch in 60 Minutes</h2>
+  <p>A complete, crystal-clear guide to building an AI-powered lead generation automation that finds potential customers, qualifies them with AI, and delivers hot leads to you automatically.</p>
+  <div class="tools-used">
+    <h4>Tools We'll Use:</h4>
+    <span>Make.com</span>
+    <span>ChatGPT / OpenAI</span>
+    <span>Google Sheets</span>
+    <span>Email (Gmail)</span>
+    <span>Typeform or Google Forms</span>
+  </div>
+  <p style="margin-top: 30px; font-size: 10pt; color: #94a3b8;">No coding required. Just follow each step exactly.</p>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ol>
+    <li>What We're Building (The Big Picture)</li>
+    <li>What is Lead Generation Automation?</li>
+    <li>The Complete Flow Diagram</li>
+    <li>Before You Start (Setup Checklist)</li>
+    <li>Step-by-Step: Create the Lead Capture Form</li>
+    <li>Step-by-Step: Connect Make.com to Your Form</li>
+    <li>Step-by-Step: Add AI to Qualify Leads</li>
+    <li>Step-by-Step: Route Leads (Hot vs Cold)</li>
+    <li>Step-by-Step: Auto-Email Hot Leads</li>
+    <li>Step-by-Step: Save Everything to Google Sheets</li>
+    <li>Step-by-Step: Test Your Automation</li>
+    <li>Step-by-Step: Turn It On (Go Live)</li>
+    <li>How to Improve It Over Time</li>
+    <li>How to Sell This to Clients ($1,500+)</li>
+    <li>Troubleshooting Common Problems</li>
+  </ol>
+</div>
+
+
+<!-- SECTION 1 -->
+<h1 class="section-title">1. What We're Building (The Big Picture)</h1>
+<p class="subtitle">Before we touch any tool, let's understand what we're creating and WHY it's valuable.</p>
+
+<div class="card">
+  <h3>The Problem We're Solving</h3>
+  <p>A business gets 50+ form submissions per day from their website. Manually reading each one, deciding who is a "hot lead" (ready to buy) vs "cold lead" (just browsing), and then following up takes <strong>3+ hours every single day</strong>.</p>
+  <p style="margin-top: 8px;"><strong>Our automation does all of this in seconds, 24/7, with zero human effort.</strong></p>
+</div>
+
+<h2>What the Automation Does (In Plain English)</h2>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">1</div></div>
+  <div class="step-content">
+    <h4>Someone fills out a form on the business website</h4>
+    <p>They enter their name, email, budget, what service they need, and a message.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">2</div></div>
+  <div class="step-content">
+    <h4>AI reads their answers and scores them 1-10</h4>
+    <p>Based on budget, urgency, and fit, AI decides: Is this person likely to buy? Score 8+? Hot lead. Score below 5? Cold lead.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">3</div></div>
+  <div class="step-content">
+    <h4>Hot leads get an instant personalized email</h4>
+    <p>Within 60 seconds of submitting the form, they get a friendly email: "Hi [name], thanks for reaching out! Based on what you shared, I'd love to schedule a quick call..."</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">4</div></div>
+  <div class="step-content">
+    <h4>Cold leads get a different nurture email</h4>
+    <p>A softer email with helpful resources: "Hi [name], here's a free guide that might help you..."</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">5</div></div>
+  <div class="step-content">
+    <h4>All leads are saved to Google Sheets with their score</h4>
+    <p>A clean spreadsheet with: Name, Email, Score, Category (Hot/Cold), AI's reasoning, date received.</p>
+  </div>
+</div>
+
+<div class="success">
+  <strong>Result:</strong> The business owner wakes up every morning to a spreadsheet of pre-scored, pre-contacted leads. They only spend time on the hot ones. This saves 20+ hours/week and increases sales by 30-50%.
+</div>
+
+
+<!-- SECTION 2 -->
+<h1 class="section-title">2. What is Lead Generation Automation?</h1>
+<p class="subtitle">Breaking it down into simple words.</p>
+
+<div class="card">
+  <h3>Lead = A potential customer</h3>
+  <p>Anyone who shows interest in a business. They filled a form, sent a message, called, or signed up for something.</p>
+</div>
+
+<div class="card">
+  <h3>Lead Generation = Finding potential customers</h3>
+  <p>The process of attracting people who might buy from you. Usually through ads, social media, websites, or referrals.</p>
+</div>
+
+<div class="card">
+  <h3>Lead Qualification = Scoring those customers</h3>
+  <p>Deciding which leads are worth your time. A person with a $10,000 budget who needs help "this week" is hotter than someone "just looking around."</p>
+</div>
+
+<div class="card">
+  <h3>AI Automation = Making AI do all of this automatically</h3>
+  <p>Instead of a human reading every form and deciding, AI does it instantly, 24/7, without breaks or mistakes.</p>
+</div>
+
+<h2>Why Businesses Pay Big Money for This</h2>
+
+<table>
+  <tr><th>Without Automation</th><th>With Your Automation</th></tr>
+  <tr><td>Manually read 50+ forms/day</td><td>AI reads and scores instantly</td></tr>
+  <tr><td>Takes 3+ hours daily</td><td>Takes 0 minutes (fully automatic)</td></tr>
+  <tr><td>Responds to leads in 24-48 hours</td><td>Responds in under 60 seconds</td></tr>
+  <tr><td>Misses hot leads on weekends</td><td>Works 24/7, never misses</td></tr>
+  <tr><td>Human bias in scoring</td><td>Consistent AI scoring every time</td></tr>
+  <tr><td>Costs $3,000-$5,000/month (employee)</td><td>Costs $30-$50/month (tools)</td></tr>
+</table>
+
+<div class="highlight">
+  <strong>This is why businesses happily pay $1,500-$5,000 for this automation.</strong> It replaces a part-time employee and works better.
+</div>
+
+
+<!-- SECTION 3 -->
+<h1 class="section-title">3. The Complete Flow Diagram</h1>
+<p class="subtitle">Here's the visual map of everything we're building. Refer back to this whenever you feel lost.</p>
+
+<div class="flow">
+  <div class="flow-box trigger">TRIGGER<br><small>Form Submitted</small></div>
+  <span class="arrow">&rarr;</span>
+  <div class="flow-box ai">AI SCORES<br><small>OpenAI rates 1-10</small></div>
+  <span class="arrow">&rarr;</span>
+  <div class="flow-box">ROUTER<br><small>Hot or Cold?</small></div>
+  <span class="arrow">&rarr;</span>
+  <div class="flow-box action">EMAIL<br><small>Personalized reply</small></div>
+  <span class="arrow">&rarr;</span>
+  <div class="flow-box output">SAVE<br><small>Google Sheets</small></div>
+</div>
+
+<h2>Detailed Breakdown of Each Step</h2>
+
+<table>
+  <tr><th>Step</th><th>Tool Used</th><th>What Happens</th></tr>
+  <tr><td>1. Trigger</td><td>Typeform / Google Forms</td><td>Visitor fills form on website</td></tr>
+  <tr><td>2. Receive Data</td><td>Make.com (Webhook)</td><td>Make.com receives name, email, budget, message</td></tr>
+  <tr><td>3. AI Scoring</td><td>OpenAI (ChatGPT API)</td><td>AI reads all answers, gives score 1-10 + reason</td></tr>
+  <tr><td>4. Decision</td><td>Make.com (Router)</td><td>If score >= 7 = Hot. If score < 7 = Cold.</td></tr>
+  <tr><td>5a. Hot Path</td><td>Gmail</td><td>Send personalized "let's talk" email</td></tr>
+  <tr><td>5b. Cold Path</td><td>Gmail</td><td>Send helpful "here's a resource" email</td></tr>
+  <tr><td>6. Save</td><td>Google Sheets</td><td>Log everything: name, email, score, category, date</td></tr>
+</table>
+
+<div class="tip">
+  <strong>Tip:</strong> Print this page and keep it next to you while building. It's your blueprint.
+</div>
+
+
+<!-- SECTION 4 -->
+<h1 class="section-title">4. Before You Start (Setup Checklist)</h1>
+<p class="subtitle">Get these ready before you begin building. Takes about 15 minutes.</p>
+
+<div class="checklist">
+  <h4>Accounts to Create (All Free)</h4>
+  <div class="check-item">Make.com account — go to make.com, click "Get started free"</div>
+  <div class="check-item">OpenAI account — go to platform.openai.com, sign up (need credit card, but costs pennies)</div>
+  <div class="check-item">Google account — for Gmail + Google Sheets (you probably have this already)</div>
+  <div class="check-item">Typeform account — go to typeform.com (free tier) OR use Google Forms (completely free)</div>
+</div>
+
+<div class="checklist">
+  <h4>Things to Prepare</h4>
+  <div class="check-item">Decide what business this is for (yours or a client's)</div>
+  <div class="check-item">Write down: What makes a "hot lead" for this business? (e.g., budget over $1,000, needs help this month)</div>
+  <div class="check-item">Write down: What makes a "cold lead"? (e.g., just browsing, no budget, vague timeline)</div>
+  <div class="check-item">Prepare a short business description (2-3 sentences about what the business does)</div>
+</div>
+
+<h2>Getting Your OpenAI API Key</h2>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">1</div></div>
+  <div class="step-content">
+    <h4>Go to platform.openai.com</h4>
+    <p>Sign up or log in with your OpenAI/ChatGPT account.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">2</div></div>
+  <div class="step-content">
+    <h4>Click on "API Keys" in the left sidebar</h4>
+    <p>You'll see a page listing your API keys (probably empty).</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">3</div></div>
+  <div class="step-content">
+    <h4>Click "+ Create new secret key"</h4>
+    <p>Give it a name like "Lead Gen Automation" and click Create.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">4</div></div>
+  <div class="step-content">
+    <h4>COPY the key immediately and save it somewhere safe</h4>
+    <p>It looks like: sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx. You can NEVER see it again after closing the popup. Save it in a note.</p>
+  </div>
+</div>
+
+<div class="warning">
+  <strong>Important:</strong> Never share your API key publicly. It's like a password. Anyone who has it can use your OpenAI account and you'll be charged.
+</div>
+
+<h2>Cost Estimate</h2>
+
+<table>
+  <tr><th>Tool</th><th>Monthly Cost</th><th>Notes</th></tr>
+  <tr><td>Make.com (Free plan)</td><td>$0</td><td>1,000 operations/month. Enough for testing + small volume.</td></tr>
+  <tr><td>OpenAI API</td><td>$2-$10</td><td>About $0.002 per lead scored. 1,000 leads = ~$2.</td></tr>
+  <tr><td>Google Sheets</td><td>$0</td><td>Free with Google account.</td></tr>
+  <tr><td>Gmail</td><td>$0</td><td>Free with Google account.</td></tr>
+  <tr><td>Typeform (Free plan)</td><td>$0</td><td>10 responses/month on free. Use Google Forms for unlimited free.</td></tr>
+  <tr><td><strong>TOTAL</strong></td><td><strong>$2-$10/month</strong></td><td><strong>To run the full automation!</strong></td></tr>
+</table>
+
+
+<!-- SECTION 5 -->
+<h1 class="section-title">5. Step-by-Step: Create the Lead Capture Form</h1>
+<p class="subtitle">This is what visitors fill out on the website. It collects the data AI will analyze.</p>
+
+<h2>Option A: Using Google Forms (Easiest, 100% Free)</h2>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">1</div></div>
+  <div class="step-content">
+    <h4>Go to forms.google.com</h4>
+    <p>Click the big "+" button to create a new blank form.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">2</div></div>
+  <div class="step-content">
+    <h4>Set the title</h4>
+    <p>Example: "Get a Free Consultation" or "Request a Quote"</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">3</div></div>
+  <div class="step-content">
+    <h4>Add these questions (in this exact order)</h4>
+    <p>This order matters because AI will use all of this to score the lead.</p>
+  </div>
+</div>
+
+<table>
+  <tr><th>#</th><th>Question</th><th>Type</th><th>Why We Need It</th></tr>
+  <tr><td>1</td><td>What's your full name?</td><td>Short answer</td><td>To personalize emails</td></tr>
+  <tr><td>2</td><td>What's your email address?</td><td>Short answer</td><td>To send follow-up</td></tr>
+  <tr><td>3</td><td>What's your company/business name?</td><td>Short answer</td><td>Shows they're serious</td></tr>
+  <tr><td>4</td><td>What service are you interested in?</td><td>Multiple choice OR short answer</td><td>Tells AI what they want</td></tr>
+  <tr><td>5</td><td>What's your approximate budget?</td><td>Multiple choice: Under $500 / $500-$2,000 / $2,000-$5,000 / $5,000+ / Not sure</td><td>Key scoring factor</td></tr>
+  <tr><td>6</td><td>How soon do you need this?</td><td>Multiple choice: This week / This month / In 2-3 months / Just exploring</td><td>Urgency = hot lead</td></tr>
+  <tr><td>7</td><td>Tell us more about what you need</td><td>Paragraph (long answer)</td><td>AI reads this for context</td></tr>
+</table>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">4</div></div>
+  <div class="step-content">
+    <h4>Make questions 1, 2, 5, and 6 "Required"</h4>
+    <p>Click on each question, toggle "Required" at the bottom right. These are essential for AI scoring.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">5</div></div>
+  <div class="step-content">
+    <h4>Click "Send" and copy the form link</h4>
+    <p>Save this link. You'll embed it on a website or share it directly.</p>
+  </div>
+</div>
+
+<div class="tip">
+  <strong>Tip:</strong> If using Typeform instead, create the same questions but in Typeform's interface. It looks prettier and gets higher completion rates, but costs money after 10 responses.
+</div>
+
+
+<!-- SECTION 6 -->
+<h1 class="section-title">6. Step-by-Step: Connect Make.com to Your Form</h1>
+<p class="subtitle">Now we connect the form to Make.com so it receives submissions automatically.</p>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">1</div></div>
+  <div class="step-content">
+    <h4>Log in to Make.com</h4>
+    <p>Go to make.com and log into your account. You'll see your dashboard.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">2</div></div>
+  <div class="step-content">
+    <h4>Click "Create a new scenario"</h4>
+    <p>A "scenario" = a workflow = your automation. You'll see a blank canvas with a big "+" in the center.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">3</div></div>
+  <div class="step-content">
+    <h4>Click the "+" and search for "Google Forms"</h4>
+    <p>Select the "Google Forms" app from the list.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">4</div></div>
+  <div class="step-content">
+    <h4>Select "Watch Responses"</h4>
+    <p>This means: "Every time someone submits the form, trigger this automation."</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">5</div></div>
+  <div class="step-content">
+    <h4>Connect your Google account</h4>
+    <p>Click "Add" next to "Connection." A Google login popup appears. Log in and give permission. This is safe — Make.com needs access to read form responses.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">6</div></div>
+  <div class="step-content">
+    <h4>Select your form</h4>
+    <p>A dropdown will show all your Google Forms. Pick the one you created in Step 5.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">7</div></div>
+  <div class="step-content">
+    <h4>Click OK and save</h4>
+    <p>You now have a purple circle on your canvas. This is the "trigger" — the starting point of your automation.</p>
+  </div>
+</div>
+
+<div class="screenshot">
+  <strong>What Your Screen Should Look Like:</strong>
+  A single purple/blue circle labeled "Google Forms - Watch Responses" on a blank white canvas. That's it for now.
+</div>
+
+<div class="highlight">
+  <strong>Checkpoint:</strong> At this point, whenever someone fills your form, Make.com will "wake up" and start running. But right now it has nothing to do with the data. Let's fix that.
+</div>
+
+
+<!-- SECTION 7 -->
+<h1 class="section-title">7. Step-by-Step: Add AI to Qualify Leads</h1>
+<p class="subtitle">This is the brain of the automation. AI will read the form answers and score each lead.</p>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">1</div></div>
+  <div class="step-content">
+    <h4>Click the "+" next to the Google Forms module</h4>
+    <p>This adds a new step AFTER the form trigger.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">2</div></div>
+  <div class="step-content">
+    <h4>Search for "OpenAI" and select it</h4>
+    <p>Choose the "OpenAI (ChatGPT, DALL-E, Whisper)" app.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">3</div></div>
+  <div class="step-content">
+    <h4>Select "Create a Chat Completion"</h4>
+    <p>This is the action that sends a message to ChatGPT and gets a response back.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">4</div></div>
+  <div class="step-content">
+    <h4>Connect your OpenAI account</h4>
+    <p>Click "Add" → paste your API key (the one you saved earlier: sk-xxxxx...) → click Save.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">5</div></div>
+  <div class="step-content">
+    <h4>Select the model: "gpt-4o-mini"</h4>
+    <p>This is the cheapest smart model. It costs about $0.001 per lead scored. Fast and accurate enough for lead scoring.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">6</div></div>
+  <div class="step-content">
+    <h4>Write the System Prompt (THIS IS CRITICAL)</h4>
+    <p>In the "System Message" field, paste the prompt below. This tells AI exactly how to score leads.</p>
+  </div>
+</div>
+
+<div class="prompt-label">SYSTEM PROMPT — Copy this exactly</div>
+<div class="prompt-box">You are a lead qualification expert for a business. Your job is to read a potential customer's form submission and score them from 1 to 10 based on how likely they are to become a paying customer.
+
+SCORING RULES:
+- Budget $5,000+ AND needs help this week/month = Score 9-10
+- Budget $2,000-$5,000 AND needs help this month = Score 7-8
+- Budget $500-$2,000 AND needs help in 2-3 months = Score 5-6
+- Budget under $500 OR "just exploring" = Score 3-4
+- Vague answers, no budget, unclear needs = Score 1-2
+
+You MUST respond in EXACTLY this format (no extra text):
+SCORE: [number]
+CATEGORY: [Hot/Warm/Cold]
+REASON: [one sentence explaining why]
+SUGGESTED_REPLY: [a personalized 2-sentence response to send them]
+
+Categories:
+- Score 7-10 = Hot
+- Score 4-6 = Warm
+- Score 1-3 = Cold</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">7</div></div>
+  <div class="step-content">
+    <h4>Write the User Message (Form data goes here)</h4>
+    <p>In the "User Message" field, you'll insert the actual form data. Click in the field and use Make.com's data picker to insert variables:</p>
+  </div>
+</div>
+
+<div class="prompt-label">USER MESSAGE — Use Make.com variables (the purple tags)</div>
+<div class="prompt-box">New lead submission:
+
+Name: {{Name}}
+Email: {{Email}}
+Company: {{Company}}
+Service Interested In: {{Service}}
+Budget: {{Budget}}
+Timeline: {{How soon do you need this?}}
+Additional Details: {{Tell us more about what you need}}
+
+Please score this lead.</div>
+
+<div class="tip">
+  <strong>How to insert variables:</strong> When you click inside the User Message field in Make.com, you'll see a panel showing data from the previous module (Google Forms). Click each piece of data to insert it. They appear as colored tags like <span style="background: #c7d2fe; padding: 2px 6px; border-radius: 3px; font-size: 9pt;">Name</span>.
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">8</div></div>
+  <div class="step-content">
+    <h4>Click OK to save the module</h4>
+    <p>You now have: Form Trigger → AI Scoring. Two modules connected by a line.</p>
+  </div>
+</div>
+
+<div class="success">
+  <strong>What happens now:</strong> When someone submits the form, AI receives all their answers, thinks about it, and outputs something like:<br><br>
+  SCORE: 8<br>
+  CATEGORY: Hot<br>
+  REASON: High budget ($5,000+) with urgent timeline (this week). Clear project description shows readiness to buy.<br>
+  SUGGESTED_REPLY: Hi Sarah, thanks for reaching out! Your project sounds exciting and we'd love to help. Let me schedule a quick 15-minute call this week to discuss the details.
+</div>
+
+
+<!-- SECTION 8 -->
+<h1 class="section-title">8. Step-by-Step: Route Leads (Hot vs Cold)</h1>
+<p class="subtitle">Now we need to split the path: hot leads go one way, cold leads go another.</p>
+
+<h2>Understanding the Router</h2>
+<p>A "Router" in Make.com splits your automation into multiple paths based on conditions. Think of it like a traffic light: green light = go this way, red light = go that way.</p>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">1</div></div>
+  <div class="step-content">
+    <h4>Right-click the line between OpenAI module and the empty space</h4>
+    <p>Or: Click the "+" after the OpenAI module, then search for "Router" in the Tools section.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">2</div></div>
+  <div class="step-content">
+    <h4>Add a Router module</h4>
+    <p>The Router appears as a diamond shape with two (or more) output paths. You'll see two lines coming out of it.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">3</div></div>
+  <div class="step-content">
+    <h4>Set up Path 1: HOT LEADS (score 7+)</h4>
+    <p>Click on the first path line. A filter settings panel opens. Set it up as:</p>
+    <p><strong>Label:</strong> Hot Lead</p>
+    <p><strong>Condition:</strong> The OpenAI response → "contains" → "CATEGORY: Hot"</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">4</div></div>
+  <div class="step-content">
+    <h4>Set up Path 2: COLD/WARM LEADS</h4>
+    <p>Click on the second path line. Set the filter:</p>
+    <p><strong>Label:</strong> Cold/Warm Lead</p>
+    <p><strong>Condition:</strong> The OpenAI response → "does not contain" → "CATEGORY: Hot"</p>
+  </div>
+</div>
+
+<div class="highlight">
+  <strong>What this does:</strong> Every time AI scores a lead, the router checks: Did AI say "CATEGORY: Hot"? If yes → go to Hot path. If no → go to Cold path. Simple!
+</div>
+
+<div class="screenshot">
+  <strong>What Your Canvas Should Look Like Now:</strong>
+  [Google Forms] → [OpenAI] → [Router Diamond] → Two paths going in different directions
+</div>
+
+
+<!-- SECTION 9 -->
+<h1 class="section-title">9. Step-by-Step: Auto-Email Hot Leads</h1>
+<p class="subtitle">Hot leads get a personalized email within 60 seconds of submitting the form.</p>
+
+<h2>Path 1: Hot Lead Email</h2>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">1</div></div>
+  <div class="step-content">
+    <h4>On the "Hot Lead" path, click "+" to add a new module</h4>
+    <p>Search for "Gmail" and select it.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">2</div></div>
+  <div class="step-content">
+    <h4>Select "Send an Email"</h4>
+    <p>This will send an email from your Gmail account.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">3</div></div>
+  <div class="step-content">
+    <h4>Connect your Gmail account</h4>
+    <p>Click "Add" → log in to Gmail → give permission. Your Gmail is now connected.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">4</div></div>
+  <div class="step-content">
+    <h4>Fill in the email fields</h4>
+    <p>Use the data from previous modules (click to insert variables):</p>
+  </div>
+</div>
+
+<table>
+  <tr><th>Field</th><th>What to Put</th></tr>
+  <tr><td><strong>To</strong></td><td>{{Email}} (from Google Forms module)</td></tr>
+  <tr><td><strong>Subject</strong></td><td>Thanks for reaching out, {{Name}}! Let's chat this week</td></tr>
+  <tr><td><strong>Body</strong></td><td>See the template below</td></tr>
+</table>
+
+<div class="prompt-label">HOT LEAD EMAIL BODY</div>
+<div class="prompt-box">Hi {{Name}},
+
+Thank you so much for reaching out to us! I just reviewed your inquiry and I'm excited — it sounds like we'd be a great fit for what you need.
+
+{{SUGGESTED_REPLY from OpenAI}}
+
+You can book a quick 15-minute call directly here: [YOUR BOOKING LINK]
+
+Or simply reply to this email and I'll get back to you within a few hours.
+
+Looking forward to connecting!
+
+Best,
+[Your Name]
+[Your Business]</div>
+
+<div class="tip">
+  <strong>Pro Tip:</strong> Use AI's "SUGGESTED_REPLY" output directly in the email. It's already personalized based on what the lead wrote! This makes every email feel hand-written.
+</div>
+
+<h2>Path 2: Cold/Warm Lead Email</h2>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">5</div></div>
+  <div class="step-content">
+    <h4>On the "Cold/Warm" path, add another Gmail "Send Email" module</h4>
+    <p>Same process as above, but with a softer, nurturing email:</p>
+  </div>
+</div>
+
+<div class="prompt-label">COLD/WARM LEAD EMAIL BODY</div>
+<div class="prompt-box">Hi {{Name}},
+
+Thanks for your interest in our services! I appreciate you taking the time to fill out our form.
+
+Since you mentioned you're still exploring options, I thought you might find this helpful:
+
+[Link to a free guide, blog post, or resource relevant to your business]
+
+When you're ready to move forward, just reply to this email or visit our website to book a free consultation. No pressure at all!
+
+Best regards,
+[Your Name]
+[Your Business]</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">6</div></div>
+  <div class="step-content">
+    <h4>Click OK on both email modules</h4>
+    <p>Both paths now have email actions. Hot leads get an eager response. Cold leads get a gentle nurture.</p>
+  </div>
+</div>
+
+
+<!-- SECTION 10 -->
+<h1 class="section-title">10. Step-by-Step: Save Everything to Google Sheets</h1>
+<p class="subtitle">Every lead gets logged in a clean spreadsheet for tracking and follow-up.</p>
+
+<h2>First: Create Your Google Sheet</h2>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">1</div></div>
+  <div class="step-content">
+    <h4>Go to sheets.google.com and create a new spreadsheet</h4>
+    <p>Name it "Lead Tracker" or "AI Lead Scores"</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">2</div></div>
+  <div class="step-content">
+    <h4>Add these column headers in Row 1</h4>
+    <p>Type exactly these in cells A1 through H1:</p>
+  </div>
+</div>
+
+<table>
+  <tr><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th></tr>
+  <tr><td>Date</td><td>Name</td><td>Email</td><td>Company</td><td>Budget</td><td>Score</td><td>Category</td><td>AI Reason</td></tr>
+</table>
+
+<h2>Now: Add Google Sheets Module in Make.com</h2>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">3</div></div>
+  <div class="step-content">
+    <h4>On BOTH paths (hot and cold), add a Google Sheets module AFTER the email module</h4>
+    <p>Click "+" after each Gmail module → search "Google Sheets" → select "Add a Row"</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">4</div></div>
+  <div class="step-content">
+    <h4>Connect your Google account (if not already connected)</h4>
+    <p>Same as before — log in and give permission.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">5</div></div>
+  <div class="step-content">
+    <h4>Select your spreadsheet and sheet (Sheet1)</h4>
+    <p>Make.com will auto-detect the column headers you created.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">6</div></div>
+  <div class="step-content">
+    <h4>Map the fields</h4>
+    <p>For each column, insert the correct data from previous modules:</p>
+  </div>
+</div>
+
+<table>
+  <tr><th>Column</th><th>Data to Insert</th><th>Source Module</th></tr>
+  <tr><td>Date</td><td>{{now}} (Use Make.com's built-in "now" function)</td><td>Built-in</td></tr>
+  <tr><td>Name</td><td>{{Name}}</td><td>Google Forms</td></tr>
+  <tr><td>Email</td><td>{{Email}}</td><td>Google Forms</td></tr>
+  <tr><td>Company</td><td>{{Company}}</td><td>Google Forms</td></tr>
+  <tr><td>Budget</td><td>{{Budget}}</td><td>Google Forms</td></tr>
+  <tr><td>Score</td><td>Parse from OpenAI response (the number after "SCORE: ")</td><td>OpenAI</td></tr>
+  <tr><td>Category</td><td>Parse from OpenAI response (Hot/Warm/Cold)</td><td>OpenAI</td></tr>
+  <tr><td>AI Reason</td><td>Parse from OpenAI response (text after "REASON: ")</td><td>OpenAI</td></tr>
+</table>
+
+<div class="tip">
+  <strong>How to parse AI response:</strong> The OpenAI module gives you one big text response. To extract just the score or category, you can use Make.com's "Text Parser" module (search for it) with a simple pattern. OR you can just put the entire AI response in one column — simpler for beginners!
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">7</div></div>
+  <div class="step-content">
+    <h4>Click OK and repeat for the second path</h4>
+    <p>Both hot and cold leads now get saved to the same spreadsheet. The "Category" column tells you which is which.</p>
+  </div>
+</div>
+
+<div class="success">
+  <strong>Your spreadsheet will look like this:</strong><br><br>
+  | Date | Name | Email | Company | Budget | Score | Category | AI Reason |<br>
+  | May 26 | Sarah J. | sarah@co.com | TechCorp | $5,000+ | 9 | Hot | High budget, urgent timeline... |<br>
+  | May 26 | Bob K. | bob@xyz.com | — | Under $500 | 3 | Cold | Low budget, just exploring... |
+</div>
+
+
+<!-- SECTION 11 -->
+<h1 class="section-title">11. Step-by-Step: Test Your Automation</h1>
+<p class="subtitle">Before turning it on, we test to make sure everything works perfectly.</p>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">1</div></div>
+  <div class="step-content">
+    <h4>In Make.com, click "Run Once" (bottom-left button)</h4>
+    <p>This puts your automation in "listening mode" — waiting for a test submission.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">2</div></div>
+  <div class="step-content">
+    <h4>Open your Google Form in a new tab and submit a HOT LEAD test</h4>
+    <p>Fill it out as if you're a hot lead:</p>
+    <ul class="bullet">
+      <li>Name: Test User Hot</li>
+      <li>Email: your-real-email@gmail.com (use YOUR email so you can check)</li>
+      <li>Company: Test Corp</li>
+      <li>Service: Web Design</li>
+      <li>Budget: $5,000+</li>
+      <li>Timeline: This week</li>
+      <li>Details: "I need a new website for my business ASAP. Ready to start immediately."</li>
+    </ul>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">3</div></div>
+  <div class="step-content">
+    <h4>Go back to Make.com and watch it run</h4>
+    <p>You'll see each module light up green as it processes. Watch the data flow through:</p>
+    <ul class="bullet">
+      <li>Google Forms lights up (data received)</li>
+      <li>OpenAI lights up (AI is thinking...)</li>
+      <li>Router lights up (checking category...)</li>
+      <li>Gmail lights up (sending hot lead email)</li>
+      <li>Google Sheets lights up (saving to sheet)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">4</div></div>
+  <div class="step-content">
+    <h4>Check your results:</h4>
+    <p>1. Did you receive the "hot lead" email in your inbox?<br>
+       2. Is the lead saved in your Google Sheet with a high score?<br>
+       3. Does the AI's reason make sense?</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">5</div></div>
+  <div class="step-content">
+    <h4>Now test with a COLD LEAD</h4>
+    <p>Submit the form again but this time:</p>
+    <ul class="bullet">
+      <li>Budget: Under $500</li>
+      <li>Timeline: Just exploring</li>
+      <li>Details: "I'm just looking around to see what's available."</li>
+    </ul>
+    <p>Verify: Did you get the "nurture" email? Is it scored low in the sheet?</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">6</div></div>
+  <div class="step-content">
+    <h4>Fix anything that's not working</h4>
+    <p>Common issues and fixes:</p>
+  </div>
+</div>
+
+<table>
+  <tr><th>Problem</th><th>Fix</th></tr>
+  <tr><td>No email received</td><td>Check Gmail module — is the "To" field using the correct variable?</td></tr>
+  <tr><td>AI gives weird response</td><td>Check your System Prompt — did you copy it exactly?</td></tr>
+  <tr><td>Router goes to wrong path</td><td>Check your filter condition — does it match "CATEGORY: Hot" exactly?</td></tr>
+  <tr><td>Sheet not updating</td><td>Make sure you selected the correct spreadsheet and sheet name</td></tr>
+  <tr><td>Email in spam folder</td><td>Normal for first emails. Mark as "Not spam." Will improve over time.</td></tr>
+</table>
+
+<div class="success">
+  <strong>If both tests pass:</strong> Congratulations! Your automation works! You're ready to go live.
+</div>
+
+
+<!-- SECTION 12 -->
+<h1 class="section-title">12. Step-by-Step: Turn It On (Go Live)</h1>
+<p class="subtitle">Make your automation run 24/7 without you touching it.</p>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">1</div></div>
+  <div class="step-content">
+    <h4>In Make.com, toggle the "Scheduling" switch to ON</h4>
+    <p>It's at the bottom-left of your scenario. When it's ON, it shows a blue toggle. Your automation is now LIVE.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">2</div></div>
+  <div class="step-content">
+    <h4>Set the schedule interval</h4>
+    <p>By default, Make.com checks for new form submissions every 15 minutes. For lead gen, this is fine. If you want faster (every 5 minutes), upgrade to a paid plan.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">3</div></div>
+  <div class="step-content">
+    <h4>Share the form link on your website/social media</h4>
+    <p>Embed the Google Form on your website, add the link to your social media bios, or share it in messages.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">4</div></div>
+  <div class="step-content">
+    <h4>Monitor for the first 24 hours</h4>
+    <p>Check your Google Sheet and Make.com dashboard to make sure leads are flowing in correctly.</p>
+  </div>
+</div>
+
+<div class="highlight">
+  <strong>That's it. Your automation is now running 24/7.</strong> Every form submission gets AI-scored and emailed within minutes. You've built a lead generation machine that works while you sleep.
+</div>
+
+<!-- SECTION 13 -->
+<h1 class="section-title">13. How to Improve It Over Time</h1>
+<p class="subtitle">Once it's running, here's how to make it even better.</p>
+
+<h2>Level 1: Quick Improvements (Do This Week)</h2>
+
+<div class="card">
+  <h3>Add a Slack/Telegram notification for hot leads</h3>
+  <p>Get instantly notified on your phone when a hot lead comes in. Add a Slack or Telegram module on the hot path: "New HOT lead: {{Name}} (Score: 9). Check your email!"</p>
+</div>
+
+<div class="card">
+  <h3>Improve your AI prompt based on real results</h3>
+  <p>After 20-30 leads, review the scores. Is AI scoring too high? Too low? Adjust the scoring rules in your system prompt.</p>
+</div>
+
+<div class="card">
+  <h3>Add a "Warm" path</h3>
+  <p>Instead of just Hot and Cold, add a third path for Warm leads (score 4-6) with a medium-urgency email.</p>
+</div>
+
+<h2>Level 2: Advanced Improvements (Next Month)</h2>
+
+<div class="card">
+  <h3>Add a CRM integration</h3>
+  <p>Instead of (or in addition to) Google Sheets, send leads directly to a CRM like HubSpot, Pipedrive, or Salesforce.</p>
+</div>
+
+<div class="card">
+  <h3>Add a follow-up sequence</h3>
+  <p>If a hot lead doesn't reply in 48 hours, automatically send a follow-up email. Add a "Delay" module (wait 48 hours) then another Gmail module.</p>
+</div>
+
+<div class="card">
+  <h3>Add a booking link with Calendly</h3>
+  <p>Instead of "reply to this email," include a Calendly link so hot leads can book a call instantly. Track who books.</p>
+</div>
+
+<div class="card">
+  <h3>Score based on website behavior</h3>
+  <p>Advanced: Track which pages they visited before filling the form. Someone who viewed your pricing page 3 times = extra hot.</p>
+</div>
+
+
+<!-- SECTION 14 -->
+<h1 class="section-title">14. How to Sell This to Clients ($1,500+)</h1>
+<p class="subtitle">You just built something businesses will happily pay thousands for. Here's how to sell it.</p>
+
+<h2>Who Needs This?</h2>
+
+<table>
+  <tr><th>Business Type</th><th>Why They Need It</th><th>What to Charge</th></tr>
+  <tr><td>Real Estate Agents</td><td>Get 50+ property inquiries/day, can't follow up fast enough</td><td>$1,500 - $3,000</td></tr>
+  <tr><td>Digital Marketing Agencies</td><td>Generate leads for their clients, need to qualify fast</td><td>$2,000 - $5,000</td></tr>
+  <tr><td>Coaches / Consultants</td><td>Get many "discovery call" requests, most are tire-kickers</td><td>$1,000 - $2,000</td></tr>
+  <tr><td>SaaS Companies</td><td>High volume of demo requests, need to prioritize</td><td>$2,000 - $4,000</td></tr>
+  <tr><td>E-commerce Stores</td><td>Wholesale inquiries, custom orders that need qualifying</td><td>$1,500 - $3,000</td></tr>
+  <tr><td>Dental / Medical Clinics</td><td>Patient inquiries need to be categorized and responded to</td><td>$1,500 - $2,500</td></tr>
+</table>
+
+<h2>How to Price It</h2>
+
+<div class="card">
+  <h3>Setup Fee: $1,000 - $5,000 (one-time)</h3>
+  <p>You build the entire automation, customize it for their business, test it, and hand it over working.</p>
+</div>
+
+<div class="card">
+  <h3>Monthly Maintenance: $200 - $500/month (recurring)</h3>
+  <p>You monitor it, fix issues, improve prompts, add features. This is where the real money is — recurring income!</p>
+</div>
+
+<h2>How to Find Clients</h2>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">1</div></div>
+  <div class="step-content">
+    <h4>Record a Loom demo video (3-5 minutes)</h4>
+    <p>Show your automation working: form submitted → AI scores → email sent → sheet updated. In real-time.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">2</div></div>
+  <div class="step-content">
+    <h4>Post on LinkedIn / Twitter</h4>
+    <p>"I built an AI system that qualifies leads and responds in under 60 seconds. Here's a demo: [link]. DM me if you want one for your business."</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">3</div></div>
+  <div class="step-content">
+    <h4>DM 10 local businesses per day</h4>
+    <p>Find businesses with contact forms on their websites. Message them: "I noticed you have a contact form on your site. I built an AI system that scores every submission and replies instantly. Can I show you a 3-minute demo?"</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num-cell"><div class="step-num">4</div></div>
+  <div class="step-content">
+    <h4>Offer the first one FREE or heavily discounted</h4>
+    <p>Your first client is for the testimonial and case study. Give them 50% off in exchange for a video testimonial you can use to get more clients.</p>
+  </div>
+</div>
+
+<div class="success">
+  <strong>Math:</strong> 5 clients × $2,000 setup + $300/month maintenance = $10,000 one-time + $1,500/month recurring. That's your first $10K+ month.
+</div>
+
+
+<!-- SECTION 15 -->
+<h1 class="section-title">15. Troubleshooting Common Problems</h1>
+<p class="subtitle">Things that might go wrong and exactly how to fix them.</p>
+
+<div class="card">
+  <h3>Problem: "My automation didn't trigger"</h3>
+  <p><strong>Cause:</strong> The scheduling is off, or Google Forms connection broke.</p>
+  <p><strong>Fix:</strong> Check that scheduling toggle is ON (blue). Check the Google Forms connection — you may need to reconnect it. Click on the module and verify the connection shows "Connected."</p>
+</div>
+
+<div class="card">
+  <h3>Problem: "AI gives weird or inconsistent scores"</h3>
+  <p><strong>Cause:</strong> Your prompt is too vague or the AI model is too weak.</p>
+  <p><strong>Fix:</strong> Make your scoring rules MORE specific in the prompt. Add examples: "Someone who says '$5,000+ budget' and 'this week' should ALWAYS be score 8+." Also try switching from gpt-4o-mini to gpt-4o (costs more but smarter).</p>
+</div>
+
+<div class="card">
+  <h3>Problem: "The router sends everything to one path"</h3>
+  <p><strong>Cause:</strong> Your filter condition doesn't match the AI's response format.</p>
+  <p><strong>Fix:</strong> Click on the OpenAI module's output after a test run. Look at the EXACT text AI returns. Then make your router filter match EXACTLY that text. Common issue: extra spaces or line breaks.</p>
+</div>
+
+<div class="card">
+  <h3>Problem: "Emails going to spam"</h3>
+  <p><strong>Cause:</strong> Gmail sending to strangers often lands in spam initially.</p>
+  <p><strong>Fix:</strong> 1) Don't use ALL CAPS in subject lines. 2) Avoid spam words ("FREE", "BUY NOW"). 3) Send from a proper business email (hello@yourbusiness.com vs random123@gmail.com). 4) Over time, as people reply, deliverability improves.</p>
+</div>
+
+<div class="card">
+  <h3>Problem: "Make.com shows an error on OpenAI module"</h3>
+  <p><strong>Cause:</strong> API key expired, rate limit hit, or account has no credits.</p>
+  <p><strong>Fix:</strong> Go to platform.openai.com → Billing. Make sure you have credits loaded ($5 minimum). If your key expired, create a new one and update it in Make.com.</p>
+</div>
+
+<div class="card">
+  <h3>Problem: "I ran out of Make.com free operations"</h3>
+  <p><strong>Cause:</strong> Free plan has 1,000 operations/month. Each run uses ~5 operations.</p>
+  <p><strong>Fix:</strong> Upgrade to the $9/month plan (10,000 operations) when you're ready. By the time you hit this limit, you should already have a paying client covering this cost.</p>
+</div>
+
+<div class="card">
+  <h3>Problem: "Google Sheets not updating"</h3>
+  <p><strong>Cause:</strong> Wrong spreadsheet selected, or column headers don't match.</p>
+  <p><strong>Fix:</strong> Open the Google Sheets module in Make.com. Verify: correct spreadsheet selected, correct sheet tab (Sheet1), and that your column headers in Row 1 match EXACTLY what you set up.</p>
+</div>
+
+<div class="warning">
+  <strong>Golden Rule:</strong> When something breaks, click on the failed module (it shows red). Read the error message. 90% of the time, the error tells you exactly what's wrong.
+</div>
+
+
+<!-- FINAL PAGE -->
+<div class="footer-page">
+  <h2>You Did It!</h2>
+  <p><strong>You now have a complete, working AI Lead Generation Automation.</strong></p>
+  <p>It captures leads, scores them with AI, sends personalized emails instantly, and saves everything to a neat spreadsheet.</p>
+  <p style="margin-top: 30px;">This exact automation is worth $1,500-$5,000 to businesses.</p>
+  <p>Build it once. Sell it many times.</p>
+  <p style="margin-top: 40px; font-size: 10pt; color: #94a3b8;">Total time to build: 45-60 minutes<br>Monthly cost to run: $2-$10<br>Value to a business: $1,500-$5,000 setup + $200-$500/month</p>
+  <p style="margin-top: 40px; color: #4338ca; font-weight: bold;">Now go build it. Your first client is waiting.</p>
+</div>
+
+</body>
+</html>
