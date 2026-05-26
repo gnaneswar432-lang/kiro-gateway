@@ -1,0 +1,240 @@
+//@version=6
+// =====================================================================
+//  Nifty 50 - 100 Days Challenge | STRATEGY (Backtestable)
+//  Bollinger Band (20, 1.5) + ENGULFING Candlestick + Body filter
+//  Entry: BUY  on bullish engulfing at LOWER band (solid body, dominates prev)
+//         SELL on bearish engulfing at UPPER band (solid body, dominates prev)
+//  SL   : low (BUY) / high (SELL) of the signal candle
+//  TP   : entry +/- risk x R:R
+//  Sizing: % equity risk OR fixed Nifty lots (75/lot)
+// =====================================================================
+strategy("BB(20,1.5) + Engulfing [Strategy]",
+     shorttitle              = "BB+Engulf S",
+     overlay                 = true,
+     initial_capital         = 100000,
+     default_qty_type        = strategy.percent_of_equity,
+     default_qty_value       = 10,
+     pyramiding              = 0,
+     commission_type         = strategy.commission.cash_per_order,
+     commission_value        = 40,
+     slippage                = 1,
+     process_orders_on_close = true,
+     calc_on_every_tick      = false,
+     max_lines_count         = 500,
+     max_labels_count        = 500)
+
+// ============================ INPUTS =================================
+bbLen   = input.int(20,    "BB Length",   minval = 1,   group = "Bollinger Band")
+bbMult  = input.float(1.5, "BB StdDev",   minval = 0.1, step = 0.1, group = "Bollinger Band")
+
+rrRatio = input.float(2.0, "Risk:Reward Ratio", minval = 1.0, step = 0.5,
+     group = "Risk Management",
+     tooltip = "Target = entry +/- (risk x this multiple). 2.0 = 1:2 R:R.")
+
+sizeMode = input.string("Risk % of equity", "Position-Sizing Mode",
+     options = ["Risk % of equity", "Fixed Nifty Lots"],
+     group   = "Risk Management")
+riskPct  = input.float(1.0, "Risk per trade (% of equity)", minval = 0.1, maxval = 10, step = 0.1, group = "Risk Management",
+     tooltip = "Used when sizing mode = Risk % of equity. qty = (equity * risk%) / SL distance.")
+nLots    = input.int(1, "Number of Nifty lots", minval = 1, group = "Risk Management",
+     tooltip = "Used when sizing mode = Fixed Nifty Lots.")
+lotSize  = input.int(75, "Contracts per lot",   minval = 1, group = "Risk Management")
+
+minBodyPct = input.float(0.60, "Min body % of total range",
+     minval = 0.30, maxval = 0.95, step = 0.05,
+     group  = "Candle Filter",
+     tooltip = "Body / (high-low). 0.60 = body must be at least 60% of the candle's full range.")
+bodyDomMult = input.float(1.0, "Body must be N x previous body",
+     minval = 1.0, maxval = 5.0, step = 0.1,
+     group  = "Candle Filter",
+     tooltip = "Engulfing body must be at least this multiple of the previous body. 1.0 = strictly larger.")
+
+oneTradePerDay = input.bool(true, "Only one trade per day", group = "Trade Management")
+useBE      = input.bool(false, "Move SL to break-even at 1R", group = "Trade Management")
+useTrail   = input.bool(false, "Trail SL with ATR after 1R",  group = "Trade Management")
+atrLen     = input.int(14, "ATR Length",    group = "Trade Management")
+trailMult  = input.float(1.5, "Trail (ATR x)", step = 0.1, group = "Trade Management")
+
+useSession = input.bool(true,         "Restrict to session", group = "Session")
+sessionStr = input.session("0915-1500","Session (Exchange Time)", group = "Session")
+
+useDate  = input.bool(true,  "Limit by date", group = "Backtest Filters")
+fromDate = input.time(timestamp("2024-01-01 00:00"), "From", group = "Backtest Filters")
+toDate   = input.time(timestamp("2099-01-01 00:00"), "To",   group = "Backtest Filters")
+
+showDash = input.bool(true, "Show stats dashboard", group = "Dashboard")
+dashPos  = input.string("top_right", "Position",
+     options = ["top_right","top_left","bottom_right","bottom_left"], group = "Dashboard")
+
+// ====================== BOLLINGER BANDS ==============================
+basis = ta.sma(close, bbLen)
+dev   = bbMult * ta.stdev(close, bbLen)
+upper = basis + dev
+lower = basis - dev
+
+pUpper = plot(upper, "BB Upper", color = color.new(#000000, 0), linewidth = 2)
+pBasis = plot(basis, "BB Basis", color = color.new(#1E88E5, 0), linewidth = 1)
+pLower = plot(lower, "BB Lower", color = color.new(#00897B, 0), linewidth = 2)
+fill(pUpper, pLower, color = color.new(#1E88E5, 95), title = "BB Fill")
+
+// =================== ENGULFING + SOLID CANDLE LOGIC ==================
+prevBody  = math.abs(close[1] - open[1])
+curBody   = math.abs(close - open)
+curRange  = high - low
+
+solidCandle   = curRange > 0 and (curBody / curRange) >= minBodyPct
+bodyDominates = curBody >= prevBody * bodyDomMult
+
+bullishEngulfing = close[1] < open[1] and close > open and close >= open[1] and open <= close[1] and bodyDominates and solidCandle
+bearishEngulfing = close[1] > open[1] and close < open and close <= open[1] and open >= close[1] and bodyDominates and solidCandle
+
+candleAtLowerBand = low  <= lower
+candleAtUpperBand = high >= upper
+
+inSession = useSession ? not na(time(timeframe.period, sessionStr)) : true
+inDate    = not useDate or (time >= fromDate and time <= toDate)
+
+rawBuy  = bullishEngulfing and candleAtLowerBand and inSession and inDate
+rawSell = bearishEngulfing and candleAtUpperBand and inSession and inDate
+
+// ============= ONE TRADE PER DAY =====================================
+var bool tradedToday = false
+if ta.change(time("D")) != 0
+    tradedToday := false
+
+canSignal = oneTradePerDay ? not tradedToday : true
+
+buySignal  = rawBuy  and canSignal and strategy.position_size == 0
+sellSignal = rawSell and canSignal and strategy.position_size == 0
+
+// ====================== POSITION SIZING ==============================
+atr = ta.atr(atrLen)
+
+f_qtyForLong(float entry, float sl) =>
+    risk = entry - sl
+    sizeMode == "Fixed Nifty Lots" ? nLots * lotSize : (risk > 0 ? (strategy.equity * (riskPct/100.0)) / risk : 0.0)
+
+f_qtyForShort(float entry, float sl) =>
+    risk = sl - entry
+    sizeMode == "Fixed Nifty Lots" ? nLots * lotSize : (risk > 0 ? (strategy.equity * (riskPct/100.0)) / risk : 0.0)
+
+// ============================ ENTRIES ================================
+var float entryPx = na
+var float slPx    = na
+var float tpPx    = na
+var float oneR    = na
+var bool  beDone  = false
+var int   sigDir  = 0
+
+if buySignal
+    entryPx := close
+    slPx    := low
+    oneR    := entryPx - slPx
+    tpPx    := entryPx + oneR * rrRatio
+    beDone  := false
+    sigDir  := 1
+    qty     = f_qtyForLong(entryPx, slPx)
+    if qty > 0
+        strategy.entry("L", strategy.long, qty = qty)
+        strategy.exit ("L-X", "L", limit = tpPx, stop = slPx)
+        tradedToday := true
+
+if sellSignal
+    entryPx := close
+    slPx    := high
+    oneR    := slPx - entryPx
+    tpPx    := entryPx - oneR * rrRatio
+    beDone  := false
+    sigDir  := -1
+    qty     = f_qtyForShort(entryPx, slPx)
+    if qty > 0
+        strategy.entry("S", strategy.short, qty = qty)
+        strategy.exit ("S-X", "S", limit = tpPx, stop = slPx)
+        tradedToday := true
+
+// ============= IN-TRADE MANAGEMENT (BE / Trailing) ===================
+inLong  = strategy.position_size > 0
+inShort = strategy.position_size < 0
+
+if inLong and not beDone and useBE and high >= entryPx + oneR
+    slPx   := math.max(slPx, entryPx)
+    beDone := true
+if inShort and not beDone and useBE and low <= entryPx - oneR
+    slPx   := math.min(slPx, entryPx)
+    beDone := true
+
+if inLong and useTrail and high >= entryPx + oneR
+    slPx := math.max(slPx, close - atr * trailMult)
+if inShort and useTrail and low <= entryPx - oneR
+    slPx := math.min(slPx, close + atr * trailMult)
+
+if inLong
+    strategy.exit("L-X", "L", limit = tpPx, stop = slPx)
+if inShort
+    strategy.exit("S-X", "S", limit = tpPx, stop = slPx)
+
+if useSession and not inSession and (inLong or inShort)
+    strategy.close_all(comment = "EOD")
+
+// ============================ PLOTTING ===============================
+plotshape(buySignal,  title = "BUY",  style = shape.triangleup,
+     location  = location.belowbar, color = color.new(#00897B, 0),
+     size      = size.small, text = "BUY", textcolor = color.white)
+plotshape(sellSignal, title = "SELL", style = shape.triangledown,
+     location  = location.abovebar, color = color.new(#C62828, 0),
+     size      = size.small, text = "SELL", textcolor = color.white)
+
+plot(strategy.position_size != 0 ? slPx    : na, "SL",    color.red,   style = plot.style_linebr, linewidth = 2)
+plot(strategy.position_size != 0 ? tpPx    : na, "TP",    color.teal,  style = plot.style_linebr, linewidth = 2)
+plot(strategy.position_size != 0 ? entryPx : na, "Entry", color.gray,  style = plot.style_linebr)
+
+bgcolor(buySignal  ? color.new(#00897B, 85) : na, title = "Buy bg")
+bgcolor(sellSignal ? color.new(#C62828, 85) : na, title = "Sell bg")
+
+// ============================ ALERTS =================================
+alertcondition(buySignal,  "BUY Signal",  "BUY (Bull Engulfing) at lower BB | Entry {{close}}")
+alertcondition(sellSignal, "SELL Signal", "SELL (Bear Engulfing) at upper BB | Entry {{close}}")
+
+// ========================== DASHBOARD ================================
+var table dash = table.new(dashPos, 2, 11,
+     bgcolor = color.new(color.black,20), border_color = color.gray, border_width = 1)
+
+f_row(table t, int r, string k, string v, color c) =>
+    table.cell(t, 0, r, k, text_color = color.silver, text_size = size.small)
+    table.cell(t, 1, r, v, text_color = c,            text_size = size.small)
+    0
+
+if showDash and barstate.islast
+    nTrades = strategy.closedtrades
+    wins    = strategy.wintrades
+    losses  = strategy.losstrades
+    winRate = nTrades > 0 ? wins / nTrades * 100 : 0.0
+    pf      = strategy.grossloss != 0 ? strategy.grossprofit / math.abs(strategy.grossloss) : na
+    avgWin  = wins   > 0 ? strategy.grossprofit / wins   : 0.0
+    avgLoss = losses > 0 ? math.abs(strategy.grossloss) / losses : 0.0
+    expect  = nTrades > 0 ? (wins/nTrades)*avgWin - (losses/nTrades)*avgLoss : 0.0
+    netPL   = strategy.netprofit
+    netPct  = strategy.initial_capital > 0 ? netPL / strategy.initial_capital * 100 : 0.0
+    mdd     = strategy.max_drawdown
+    mddPct  = strategy.initial_capital > 0 ? mdd / strategy.initial_capital * 100 : 0.0
+
+    netCol  = netPL >= 0 ? color.lime : color.red
+    pfCol   = na(pf) ? color.gray : pf >= 1.5 ? color.lime : pf >= 1 ? color.yellow : color.red
+    wrCol   = winRate >= 50 ? color.lime : winRate >= 40 ? color.yellow : color.red
+
+    table.cell(dash, 0, 0, "BB+ENGULF STRATEGY", text_color = color.white, bgcolor = color.new(color.blue, 40))
+    table.cell(dash, 1, 0, syminfo.ticker + "  " + timeframe.period, text_color = color.white, bgcolor = color.new(color.blue, 40))
+
+    f_row(dash, 1,  "Net P/L",        str.tostring(netPL, format.mintick) + "  (" + str.tostring(netPct, "#.##") + "%)", netCol)
+    f_row(dash, 2,  "Profit Factor",  na(pf) ? "—" : str.tostring(pf, "#.##"), pfCol)
+    f_row(dash, 3,  "Win Rate",       str.tostring(winRate, "#.##") + "%",     wrCol)
+    f_row(dash, 4,  "Trades (W/L)",   str.tostring(nTrades) + "  (" + str.tostring(wins) + " / " + str.tostring(losses) + ")", color.white)
+    f_row(dash, 5,  "Expectancy",     str.tostring(expect, format.mintick),    expect >= 0 ? color.lime : color.red)
+    f_row(dash, 6,  "Avg Win / Loss", str.tostring(avgWin, format.mintick) + " / " + str.tostring(avgLoss, format.mintick), color.aqua)
+    f_row(dash, 7,  "Max Drawdown",   str.tostring(mdd, format.mintick) + "  (" + str.tostring(mddPct, "#.##") + "%)", color.red)
+    posTxt = strategy.position_size == 0 ? "Flat" : strategy.position_size > 0 ? "LONG "  + str.tostring(strategy.position_size, "#.##") : "SHORT " + str.tostring(math.abs(strategy.position_size), "#.##")
+    posCol = strategy.position_size > 0 ? color.lime : strategy.position_size < 0 ? color.red : color.gray
+    f_row(dash, 8,  "Open Position",  posTxt, posCol)
+    sizeTxt = sizeMode == "Fixed Nifty Lots" ? str.tostring(nLots) + " lot(s) = " + str.tostring(nLots*lotSize) + " qty" : str.tostring(riskPct, "#.##") + "% equity"
+    f_row(dash, 9,  "Sizing",         sizeTxt, color.yellow)
+    f_row(dash, 10, "ATR(" + str.tostring(atrLen) + ")", str.tostring(atr, format.mintick), color.aqua)
